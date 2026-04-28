@@ -12,7 +12,9 @@ export default function Dashboard() {
   const [data, setData] = useState<Alerta[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDept, setSelectedDept] = useState<string | null>(null);
+  const [selectedProv, setSelectedProv] = useState<string | null>(null);
   const [targetCoords, setTargetCoords] = useState<[number, number] | null>(null);
+  const [showHeatmap, setShowHeatmap] = useState(false);
   
   // Estado para GPS
   const [gpsActive, setGpsActive] = useState(false);
@@ -72,6 +74,9 @@ export default function Dashboard() {
   }, []);
 
   const departments = Array.from(new Set(data.map(d => d.NOMBDEP))).filter(Boolean);
+  const provinces = selectedDept 
+    ? Array.from(new Set(data.filter(d => d.NOMBDEP === selectedDept).map(d => d.NOMBPROV))).filter(Boolean)
+    : [];
   
   const stats = {
     total: data.length,
@@ -82,8 +87,10 @@ export default function Dashboard() {
   const ranking = Object.values(
     data
       .filter(d => d.ESTADO_DESC?.includes('No atendido'))
+      .filter(d => !selectedDept || d.NOMBDEP === selectedDept)
+      .filter(d => !selectedProv || d.NOMBPROV === selectedProv)
       .reduce((acc: any, curr) => {
-        const key = `${curr.NOMBDEP}-${curr.NOMBDIST}`;
+        const key = `${curr.NOMBDEP}-${curr.NOMBPROV}-${curr.NOMBDIST}`;
         if (!acc[key]) {
           acc[key] = { 
             district: curr.NOMBDIST, 
@@ -103,6 +110,11 @@ export default function Dashboard() {
   const handleSelectRanking = (item: any) => {
     setTargetCoords([item.lat, item.lng]);
     setSelectedDept(item.dept);
+  };
+
+  const handleSelectDept = (dept: string | null) => {
+    setSelectedDept(dept);
+    setSelectedProv(null);
   };
 
   if (loading) {
@@ -127,20 +139,33 @@ export default function Dashboard() {
       <Sidebar 
         stats={stats} 
         departments={departments}
+        provinces={provinces}
         selectedDept={selectedDept}
-        onSelectDept={setSelectedDept}
+        selectedProv={selectedProv}
+        onSelectDept={handleSelectDept}
+        onSelectProv={setSelectedProv}
         ranking={ranking}
         onSelectRanking={handleSelectRanking}
         gpsActive={gpsActive}
         onToggleGps={setGpsActive}
+        showHeatmap={showHeatmap}
+        onToggleHeatmap={(val: boolean) => {
+          setShowHeatmap(val);
+          if (val) {
+            setTargetCoords([-11.5, -75.0]); // Centrar en Junín aproximadamente
+            setSelectedDept('JUNIN');
+          }
+        }}
       />
       
       <section className="flex-1 relative">
         <Map 
           data={data} 
           selectedDept={selectedDept} 
+          selectedProv={selectedProv}
           targetCoords={targetCoords}
           userPosition={userPosition}
+          showHeatmap={showHeatmap}
         />
         
         {/* Overlay Superior */}
@@ -150,7 +175,7 @@ export default function Dashboard() {
               Localización Actual
             </h2>
             <p className="text-slate-900 font-black text-lg">
-              {selectedDept || 'Todo el Perú'}
+              {selectedProv ? `${selectedProv}, ${selectedDept}` : (selectedDept || 'Todo el Perú')}
             </p>
           </div>
         </div>

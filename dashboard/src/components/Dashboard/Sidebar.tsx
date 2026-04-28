@@ -9,16 +9,21 @@ interface SidebarProps {
     noAtendidos: number;
   };
   departments: string[];
+  provinces: string[];
   selectedDept: string | null;
+  selectedProv: string | null;
   onSelectDept: (dept: string | null) => void;
+  onSelectProv: (prov: string | null) => void;
   ranking: RankingItem[];
   onSelectRanking: (item: RankingItem) => void;
   gpsActive: boolean;
   onToggleGps: (active: boolean) => void;
+  showHeatmap: boolean;
+  onToggleHeatmap: (val: boolean) => void;
 }
 
 export default function Sidebar({ 
-  stats, departments, selectedDept, onSelectDept, ranking, onSelectRanking, gpsActive, onToggleGps 
+  stats, departments, provinces, selectedDept, selectedProv, onSelectDept, onSelectProv, ranking, onSelectRanking, gpsActive, onToggleGps, showHeatmap, onToggleHeatmap
 }: SidebarProps) {
   return (
     <aside className="w-80 bg-white border-r border-slate-200 flex flex-col h-full overflow-hidden shadow-xl">
@@ -62,6 +67,37 @@ export default function Sidebar({
           </button>
         </section>
 
+        {/* Heatmap Junín */}
+        <section>
+          <h2 className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <MapIcon className="w-3.5 h-3.5" />
+            Análisis de Contaminación
+          </h2>
+          <button 
+            onClick={() => onToggleHeatmap(!showHeatmap)}
+            className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${
+              showHeatmap 
+                ? 'bg-red-500 border-red-400 text-white shadow-lg shadow-red-200' 
+                : 'bg-white border-slate-200 text-slate-600 hover:border-red-300'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${showHeatmap ? 'bg-white/20' : 'bg-slate-100'}`}>
+                <ShieldAlert className={`w-5 h-5 ${showHeatmap ? 'text-white' : 'text-slate-500'}`} />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold">Mapa de Calor (Junín)</p>
+                <p className={`text-[10px] font-medium ${showHeatmap ? 'text-red-100' : 'text-slate-400'}`}>
+                  {showHeatmap ? 'Mercados Críticos' : 'Inactivo'}
+                </p>
+              </div>
+            </div>
+            <div className={`w-10 h-6 rounded-full relative transition-colors ${showHeatmap ? 'bg-red-600' : 'bg-slate-200'}`}>
+              <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all transform ${showHeatmap ? 'left-5' : 'left-1'}`} />
+            </div>
+          </button>
+        </section>
+
         {/* Filtros */}
         <section>
           <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -78,6 +114,25 @@ export default function Sidebar({
               <option key={dept} value={dept}>{dept}</option>
             ))}
           </select>
+
+          {selectedDept && (
+            <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <Filter className="w-3.5 h-3.5 text-emerald-500" />
+                Filtrar Provincia
+              </h2>
+              <select 
+                value={selectedProv || ''} 
+                onChange={(e) => onSelectProv(e.target.value || null)}
+                className="w-full bg-emerald-50/50 border border-emerald-100 text-slate-900 rounded-lg px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              >
+                <option value="">Todas las provincias</option>
+                {provinces.sort().map(prov => (
+                  <option key={prov} value={prov}>{prov}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </section>
 
         {/* Ranking List */}

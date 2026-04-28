@@ -5,6 +5,32 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
 import { Alerta } from '@/types';
 import ImageCarousel from './ImageCarousel';
+import HeatmapLayer from './HeatmapLayer';
+
+const juninMarketsHeatmapData: [number, number, number][] = [
+  // Mercado Modelo de Huancayo (High density) - Generamos más puntos para más intensidad
+  [-12.0658, -75.2058, 2.0], [-12.0659, -75.2057, 1.5], [-12.0657, -75.2059, 1.8], [-12.0660, -75.2055, 1.9], [-12.0655, -75.2060, 1.7],
+  [-12.0658, -75.2058, 2.0], [-12.0659, -75.2057, 1.5], [-12.0657, -75.2059, 1.8], [-12.0660, -75.2055, 1.9], [-12.0655, -75.2060, 1.7],
+  // Mercado Mayorista de Huancayo
+  [-12.0673, -75.2014, 1.9], [-12.0675, -75.2012, 1.8], [-12.0670, -75.2016, 1.9], [-12.0678, -75.2010, 1.7],
+  [-12.0673, -75.2014, 1.9], [-12.0675, -75.2012, 1.8], [-12.0670, -75.2016, 1.9], [-12.0678, -75.2010, 1.7],
+  // Mercado de Satipo
+  [-11.2530, -74.6385, 1.8], [-11.2532, -74.6383, 1.7], [-11.2528, -74.6387, 1.6],
+  [-11.2530, -74.6385, 1.8], [-11.2532, -74.6383, 1.7], [-11.2528, -74.6387, 1.6],
+  // Mercado de Tarma
+  [-11.4180, -75.6880, 1.7], [-11.4182, -75.6878, 1.6],
+  [-11.4180, -75.6880, 1.7], [-11.4182, -75.6878, 1.6],
+  // Mercado de La Oroya
+  [-11.5170, -75.8970, 1.8], [-11.5175, -75.8965, 1.7],
+  // Mercado de La Merced (Chanchamayo)
+  [-11.0545, -75.3280, 1.7], [-11.0548, -75.3278, 1.6],
+  // Mercado de Jauja
+  [-11.7760, -75.4980, 1.6], [-11.7762, -75.4982, 1.5],
+  // Mercado de Chilca
+  [-12.0830, -75.2030, 1.8], [-12.0833, -75.2028, 1.7], [-12.0828, -75.2032, 1.6],
+  // Mercado de El Tambo
+  [-12.0460, -75.2150, 1.7], [-12.0462, -75.2148, 1.6], [-12.0458, -75.2152, 1.5],
+];
 
 function MapController({ center, zoom }: { center: [number, number] | null, zoom: number }) {
   const map = useMap();
@@ -16,7 +42,7 @@ function MapController({ center, zoom }: { center: [number, number] | null, zoom
   return null;
 }
 
-export default function MapContent({ data, selectedDept, targetCoords, userPosition }: any) {
+export default function MapContent({ data, selectedDept, selectedProv, targetCoords, userPosition, showHeatmap }: any) {
   const [peruGeoJSON, setPeruGeoJSON] = useState<any>(null);
 
   useEffect(() => {
@@ -26,9 +52,11 @@ export default function MapContent({ data, selectedDept, targetCoords, userPosit
       .catch(err => console.error("GeoJSON Error:", err));
   }, []);
 
-  const filteredData = selectedDept 
-    ? data.filter((d: Alerta) => d.NOMBDEP === selectedDept) 
-    : data;
+  const filteredData = data.filter((d: Alerta) => {
+    if (selectedDept && d.NOMBDEP !== selectedDept) return false;
+    if (selectedProv && d.NOMBPROV !== selectedProv) return false;
+    return true;
+  });
 
   const getStatusColor = (status: string) => {
     if (status.includes('Atendido')) return '#059669';
@@ -63,6 +91,10 @@ export default function MapContent({ data, selectedDept, targetCoords, userPosit
           interactive={false} 
           style={{ color: '#10b981', weight: 1, fillOpacity: 0 }} 
         />
+      )}
+
+      {showHeatmap && (
+        <HeatmapLayer points={juninMarketsHeatmapData} />
       )}
 
       {filteredData.map((alerta: Alerta) => {
