@@ -38,7 +38,7 @@ export function useGeolocation(
       if (!p.ESTADO_DESC?.includes('No atendido')) return false;
       
       const distance = calculateDistance(userLat, userLng, p.LATITUD, p.LONGITUD);
-      return distance <= 50; // Radio de 50 metros
+      return distance <= 20; // Radio de 20 metros
     });
 
     if (nearby.length > 0) {

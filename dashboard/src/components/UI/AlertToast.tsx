@@ -7,9 +7,11 @@ interface AlertToastProps {
   show: boolean;
   onClose: () => void;
   message: string;
+  onNotify?: () => void;
+  onShowInfo?: () => void;
 }
 
-export default function AlertToast({ show, onClose, message }: AlertToastProps) {
+export default function AlertToast({ show, onClose, message, onNotify, onShowInfo }: AlertToastProps) {
   const [shouldPlaySound, setShouldPlaySound] = useState(false);
 
   useEffect(() => {
@@ -19,9 +21,10 @@ export default function AlertToast({ show, onClose, message }: AlertToastProps) 
       audio.volume = 0.5;
       audio.play().catch(e => console.log('Bloqueo de audio:', e));
       
+      // Aumentamos el tiempo a 15 segundos si hay botones de acción
       const timer = setTimeout(() => {
         onClose();
-      }, 8000);
+      }, 15000);
       return () => clearTimeout(timer);
     }
   }, [show, onClose]);
@@ -29,34 +32,57 @@ export default function AlertToast({ show, onClose, message }: AlertToastProps) 
   if (!show) return null;
 
   return (
-    <div className="fixed top-6 right-6 z-[9999] animate-in slide-in-from-right duration-500">
-      <div className="bg-white border-2 border-red-500 rounded-2xl shadow-2xl p-5 flex items-start gap-4 max-w-sm overflow-hidden relative">
+    <div className="fixed top-6 right-6 z-[9999] animate-in slide-in-from-right duration-500 max-w-sm w-full">
+      <div className="bg-white border-2 border-red-500 rounded-3xl shadow-2xl p-6 flex flex-col gap-4 overflow-hidden relative">
         {/* Decorative background accent */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-red-500 animate-pulse"></div>
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-red-500 animate-pulse"></div>
         
-        <div className="bg-red-50 p-3 rounded-xl">
-          <AlertTriangle className="w-8 h-8 text-red-600 animate-bounce" />
-        </div>
-        
-        <div className="flex-1">
-          <h3 className="text-lg font-black text-red-700 leading-tight mb-1">
-            ALERTA DE PROXIMIDAD
-          </h3>
-          <p className="text-sm font-semibold text-slate-600 line-clamp-2">
-            {message}
-          </p>
-          <div className="mt-3 flex items-center gap-2 text-[10px] font-bold text-red-500 uppercase tracking-widest">
-            <Navigation className="w-3 h-3" />
-            Radio de 50 metros
+        <div className="flex items-start gap-4">
+          <div className="bg-red-50 p-3 rounded-2xl">
+            <AlertTriangle className="w-8 h-8 text-red-600 animate-bounce" />
+          </div>
+          
+          <div className="flex-1">
+            <div className="flex justify-between items-start">
+              <h3 className="text-lg font-black text-red-700 leading-tight mb-1">
+                ALERTA DE PROXIMIDAD
+              </h3>
+              <button 
+                onClick={onClose}
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-lg transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm font-bold text-slate-700 leading-relaxed">
+              {message}
+            </p>
+            <div className="mt-2 flex items-center gap-2 text-[10px] font-black text-red-500 uppercase tracking-widest">
+              <Navigation className="w-3 h-3" />
+              Radio Crítico (20 metros)
+            </div>
           </div>
         </div>
-        
-        <button 
-          onClick={onClose}
-          className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-lg transition-all"
-        >
-          <X className="w-5 h-5" />
-        </button>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-1 gap-2 mt-2">
+          <button 
+            onClick={() => {
+              onNotify?.();
+              onClose();
+            }}
+            className="w-full bg-red-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-wider hover:bg-red-700 transition-all active:scale-[0.98] shadow-lg shadow-red-100 flex items-center justify-center gap-2"
+          >
+            Notificar a la Municipalidad
+          </button>
+          
+          <button 
+            onClick={onShowInfo}
+            className="w-full bg-slate-100 text-slate-800 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            Reglamentos & Entidades
+          </button>
+        </div>
       </div>
     </div>
   );

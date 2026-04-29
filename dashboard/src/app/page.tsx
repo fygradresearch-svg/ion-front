@@ -6,6 +6,7 @@ import Map from '@/components/Map/Map';
 import Sidebar from '@/components/Dashboard/Sidebar';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import AlertToast from '@/components/UI/AlertToast';
+import InfoModal from '@/components/UI/InfoModal';
 import { Alerta, RankingItem } from '@/types';
 
 export default function Dashboard() {
@@ -22,6 +23,8 @@ export default function Dashboard() {
     show: false,
     message: '',
   });
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [notificationSuccess, setNotificationSuccess] = useState(false);
 
   const onProximityAlert = useCallback((nearby: Alerta[]) => {
     if (nearby.length > 0 && !alertInfo.show) {
@@ -134,7 +137,28 @@ export default function Dashboard() {
         show={alertInfo.show} 
         message={alertInfo.message} 
         onClose={() => setAlertInfo({ ...alertInfo, show: false })} 
+        onNotify={() => {
+          setNotificationSuccess(true);
+          setTimeout(() => setNotificationSuccess(false), 5000);
+        }}
+        onShowInfo={() => setShowInfoModal(true)}
       />
+
+      <InfoModal 
+        isOpen={showInfoModal} 
+        onClose={() => setShowInfoModal(false)} 
+      />
+
+      {notificationSuccess && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[10001] bg-emerald-600 text-white px-6 py-3 rounded-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 flex items-center gap-3">
+          <div className="bg-white/20 p-1 rounded-full">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <span className="font-bold">Notificación enviada con éxito a la municipalidad</span>
+        </div>
+      )}
 
       <Sidebar 
         stats={stats} 
