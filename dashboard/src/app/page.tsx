@@ -31,7 +31,7 @@ export default function Dashboard() {
       const p = nearby[0];
       setAlertInfo({
         show: true,
-        message: `¡Cuidado! Estás cerca de un punto crítico en ${p.NOMBDIST} (${p.NOMBDEP})`,
+        message: `¡Alerta! Estás pasando por una zona contaminada en ${p.NOMBDIST}. Te sugiero usar mascarillas al pasar por este lugar para proteger tu salud.`,
       });
     }
   }, [alertInfo.show]);

@@ -54,10 +54,23 @@ export default function AlertToast({ show, onClose, message, onNotify, onShowInf
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-sm font-bold text-slate-700 leading-relaxed">
+            
+            <p className="text-sm font-bold text-slate-700 leading-relaxed mb-3">
               {message}
             </p>
-            <div className="mt-2 flex items-center gap-2 text-[10px] font-black text-red-500 uppercase tracking-widest">
+
+            {message.includes('mascarilla') && (
+              <div className="bg-red-50 border border-red-100 p-3 rounded-2xl flex items-center gap-3 animate-pulse">
+                <div className="bg-red-600 p-1.5 rounded-full">
+                  <Navigation className="w-3 h-3 text-white" />
+                </div>
+                <span className="text-[11px] font-black text-red-700 uppercase tracking-wide">
+                  Usa Mascarilla: Zona de Riesgo
+                </span>
+              </div>
+            )}
+
+            <div className="mt-3 flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
               <Navigation className="w-3 h-3" />
               Radio Crítico (20 metros)
             </div>

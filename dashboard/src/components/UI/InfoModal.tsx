@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Shield, Book, Landmark, CheckCircle } from 'lucide-react';
+import { X, Shield, Book, Landmark, CheckCircle, HeartPulse } from 'lucide-react';
 
 interface InfoModalProps {
   isOpen: boolean;
@@ -68,6 +68,26 @@ export default function InfoModal({ isOpen, onClose }: InfoModalProps) {
                     </p>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Health Suggestions */}
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4 text-red-600">
+              <HeartPulse className="w-5 h-5" />
+              <h3 className="text-lg font-bold">Sugerencias de Salud</h3>
+            </div>
+            
+            <div className="bg-red-50 p-5 rounded-2xl border border-red-100 flex gap-4 items-start shadow-sm shadow-red-50">
+              <div className="bg-red-600 p-2 rounded-xl text-white shrink-0">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-red-900 mb-1">Protección Respiratoria</h4>
+                <p className="text-sm text-red-800 leading-relaxed font-medium">
+                  Te sugiero usar mascarillas al pasar por lugares contaminados para proteger tu salud y prevenir afecciones respiratorias por la exposición a residuos acumulados.
+                </p>
               </div>
             </div>
           </div>
