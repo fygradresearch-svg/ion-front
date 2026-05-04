@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [selectedProv, setSelectedProv] = useState<string | null>(null);
   const [targetCoords, setTargetCoords] = useState<[number, number] | null>(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showContaminationLayer, setShowContaminationLayer] = useState(true);
   
   // Estado para GPS
   const [gpsActive, setGpsActive] = useState(false);
@@ -180,6 +181,8 @@ export default function Dashboard() {
             setSelectedDept('JUNIN');
           }
         }}
+        showContaminationLayer={showContaminationLayer}
+        onToggleContaminationLayer={setShowContaminationLayer}
       />
       
       <section className="flex-1 relative">
@@ -190,6 +193,7 @@ export default function Dashboard() {
           targetCoords={targetCoords}
           userPosition={userPosition}
           showHeatmap={showHeatmap}
+          showContaminationLayer={showContaminationLayer}
         />
         
         {/* Overlay Superior */}

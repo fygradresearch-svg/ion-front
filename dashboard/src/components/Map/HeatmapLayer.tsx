@@ -10,9 +10,16 @@ if (typeof window !== 'undefined') {
 
 interface HeatmapLayerProps {
   points: [number, number, number][]; // lat, lng, intensity
+  options?: {
+    radius?: number;
+    blur?: number;
+    maxZoom?: number;
+    max?: number;
+    gradient?: Record<number | string, string>;
+  };
 }
 
-export default function HeatmapLayer({ points }: HeatmapLayerProps) {
+export default function HeatmapLayer({ points, options }: HeatmapLayerProps) {
   const map = useMap();
 
   useEffect(() => {
@@ -20,11 +27,11 @@ export default function HeatmapLayer({ points }: HeatmapLayerProps) {
     
     // @ts-ignore - leaflet.heat is an extension
     const heat = L.heatLayer(points, {
-      radius: 40,
-      blur: 25,
-      maxZoom: 14,
-      max: 0.8, // Bajar el máximo hace que los puntos se vean "más calientes" más rápido
-      gradient: {
+      radius: options?.radius ?? 40,
+      blur: options?.blur ?? 25,
+      maxZoom: options?.maxZoom ?? 14,
+      max: options?.max ?? 0.8,
+      gradient: options?.gradient ?? {
         0.2: 'blue',
         0.4: 'cyan',
         0.6: 'lime',

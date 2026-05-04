@@ -20,10 +20,12 @@ interface SidebarProps {
   onToggleGps: (active: boolean) => void;
   showHeatmap: boolean;
   onToggleHeatmap: (val: boolean) => void;
+  showContaminationLayer: boolean;
+  onToggleContaminationLayer: (val: boolean) => void;
 }
 
 export default function Sidebar({ 
-  stats, departments, provinces, selectedDept, selectedProv, onSelectDept, onSelectProv, ranking, onSelectRanking, gpsActive, onToggleGps, showHeatmap, onToggleHeatmap
+  stats, departments, provinces, selectedDept, selectedProv, onSelectDept, onSelectProv, ranking, onSelectRanking, gpsActive, onToggleGps, showHeatmap, onToggleHeatmap, showContaminationLayer, onToggleContaminationLayer
 }: SidebarProps) {
   return (
     <aside className="w-80 bg-white border-r border-slate-200 flex flex-col h-full overflow-hidden shadow-xl">
@@ -98,6 +100,36 @@ export default function Sidebar({
           </button>
         </section>
 
+        {/* Capa de Contaminación Sentinel-2 */}
+        <section>
+          <h2 className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <MapIcon className="w-3.5 h-3.5" />
+            Detección Satelital
+          </h2>
+          <button 
+            onClick={() => onToggleContaminationLayer(!showContaminationLayer)}
+            className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${
+              showContaminationLayer 
+                ? 'bg-blue-500 border-blue-400 text-white shadow-lg shadow-blue-200' 
+                : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${showContaminationLayer ? 'bg-white/20' : 'bg-slate-100'}`}>
+                <ShieldAlert className={`w-5 h-5 ${showContaminationLayer ? 'text-white' : 'text-slate-500'}`} />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold">Sentinel-2 (Zonas Remotas)</p>
+                <p className={`text-[10px] font-medium ${showContaminationLayer ? 'text-blue-100' : 'text-slate-400'}`}>
+                  {showContaminationLayer ? 'Zonas Críticas Detectadas' : 'Desactivado'}
+                </p>
+              </div>
+            </div>
+            <div className={`w-10 h-6 rounded-full relative transition-colors ${showContaminationLayer ? 'bg-blue-600' : 'bg-slate-200'}`}>
+              <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all transform ${showContaminationLayer ? 'left-5' : 'left-1'}`} />
+            </div>
+          </button>
+        </section>
         {/* Filtros */}
         <section>
           <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">

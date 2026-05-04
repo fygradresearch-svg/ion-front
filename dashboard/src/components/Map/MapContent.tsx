@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Alerta } from '@/types';
 import ImageCarousel from './ImageCarousel';
 import HeatmapLayer from './HeatmapLayer';
+import { getContaminationDataFromSentinel2, convertToHeatmapFormat, ContaminationPoint } from '@/services/sentinelService';
 
 const juninMarketsHeatmapData: [number, number, number][] = [
   // Mercado Modelo de Huancayo (High density) - Generamos más puntos para más intensidad
@@ -42,14 +43,25 @@ function MapController({ center, zoom }: { center: [number, number] | null, zoom
   return null;
 }
 
-export default function MapContent({ data, selectedDept, selectedProv, targetCoords, userPosition, showHeatmap }: any) {
+export default function MapContent({ data, selectedDept, selectedProv, targetCoords, userPosition, showHeatmap, showContaminationLayer }: any) {
   const [peruGeoJSON, setPeruGeoJSON] = useState<any>(null);
+  const [contaminationHeatmap, setContaminationHeatmap] = useState<[number, number, number][]>([]);
+  const [contaminationPoints, setContaminationPoints] = useState<ContaminationPoint[]>([]);
 
   useEffect(() => {
     fetch('/peru-boundary.json')
       .then(res => res.json())
       .then(json => setPeruGeoJSON(json))
       .catch(err => console.error("GeoJSON Error:", err));
+  }, []);
+
+  // Cargar datos de contaminación de Sentinel-2
+  useEffect(() => {
+    getContaminationDataFromSentinel2().then(points => {
+      setContaminationPoints(points);
+      const heatmapData = convertToHeatmapFormat(points);
+      setContaminationHeatmap(heatmapData);
+    });
   }, []);
 
   const filteredData = data.filter((d: Alerta) => {
@@ -96,6 +108,78 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
       {showHeatmap && (
         <HeatmapLayer points={juninMarketsHeatmapData} />
       )}
+
+      {/* Capa de contaminación de zonas remotas (Sentinel-2) */}
+      {showContaminationLayer && contaminationHeatmap.length > 0 && (
+        <HeatmapLayer 
+          points={contaminationHeatmap}
+          options={{
+            radius: 25,
+            blur: 15,
+            max: 2.0,
+            gradient: {
+              0.0: '#2563eb',    // Azul - bajo
+              0.25: '#10b981',   // Verde - moderado
+              0.5: '#f59e0b',    // Naranja - medio-alto
+              0.75: '#f97316',   // Naranja profundo
+              1.0: '#dc2626',    // Rojo - alto
+            },
+          }}
+        />
+      )}
+
+      {/* Mostrar puntos críticos de contaminación */}
+      {showContaminationLayer && contaminationPoints.map((point, idx) => {
+        if (point.intensity <= 1.5) return null; // Solo mostrar puntos críticos
+
+        const typeLabels: Record<string, string> = {
+          water: '💧 Agua contaminada',
+          vegetation: '🌳 Vegetación degradada',
+          soil: '🚫 Suelo contaminado',
+          urban: '🏢 Expansión urbana',
+        };
+
+        const popupContent = (
+          <Popup minWidth={280}>
+            <div style={{ fontFamily: 'sans-serif', color: '#1e293b', fontSize: '12px' }}>
+              <div style={{ marginBottom: '8px', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                <span>🛰️ Detección Sentinel-2</span>
+              </div>
+              <div style={{ backgroundColor: '#f0f9ff', padding: '8px', borderRadius: '4px', marginBottom: '8px' }}>
+                <p style={{ margin: '4px 0', fontWeight: 'bold' }}>{typeLabels[point.type]}</p>
+                <p style={{ margin: '4px 0', fontSize: '11px', color: '#64748b' }}>
+                  Intensidad: {(point.intensity * 50).toFixed(0)}%
+                </p>
+                <p style={{ margin: '4px 0', fontSize: '11px', color: '#64748b' }}>
+                  Confianza: {point.confidence}%
+                </p>
+              </div>
+              <div style={{ fontSize: '10px', color: '#64748b', backgroundColor: '#f8fafc', padding: '6px', borderRadius: '3px' }}>
+                <p style={{ margin: '2px 0' }}>Índices espectrales:</p>
+                <p style={{ margin: '2px 0' }}>NDVI: {point.ndvi?.toFixed(3)}</p>
+                <p style={{ margin: '2px 0' }}>NDWI: {point.ndwi?.toFixed(3)}</p>
+                <p style={{ margin: '2px 0' }}>NDBI: {point.ndbi?.toFixed(3)}</p>
+              </div>
+            </div>
+          </Popup>
+        );
+
+        return (
+          <CircleMarker
+            key={`contamination-${idx}`}
+            center={[point.lat, point.lng]}
+            pathOptions={{
+              color: point.intensity > 1.8 ? '#dc2626' : '#f97316',
+              fillColor: point.intensity > 1.8 ? '#dc2626' : '#f97316',
+              fillOpacity: 0.8,
+              weight: 2,
+            }}
+            radius={point.intensity > 1.8 ? 7 : 5}
+          >
+            {popupContent}
+          </CircleMarker>
+        );
+      })}
 
       {filteredData.map((alerta: Alerta) => {
         const popupContent = (
