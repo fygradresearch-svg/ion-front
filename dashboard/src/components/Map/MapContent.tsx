@@ -154,11 +154,17 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
                   Confianza: {point.confidence}%
                 </p>
               </div>
-              <div style={{ fontSize: '10px', color: '#64748b', backgroundColor: '#f8fafc', padding: '6px', borderRadius: '3px' }}>
+              <div style={{ fontSize: '10px', color: '#64748b', backgroundColor: '#f8fafc', padding: '6px', borderRadius: '3px', marginBottom: '8px' }}>
                 <p style={{ margin: '2px 0' }}>Índices espectrales:</p>
                 <p style={{ margin: '2px 0' }}>NDVI: {point.ndvi?.toFixed(3)}</p>
                 <p style={{ margin: '2px 0' }}>NDWI: {point.ndwi?.toFixed(3)}</p>
                 <p style={{ margin: '2px 0' }}>NDBI: {point.ndbi?.toFixed(3)}</p>
+              </div>
+              <div style={{ fontSize: '9px', backgroundColor: '#fef3c7', padding: '6px', borderRadius: '3px', borderLeft: '3px solid #d97706' }}>
+                <p style={{ margin: '3px 0 2px 0', fontWeight: 'bold', color: '#92400e' }}>📋 MARCO LEGAL</p>
+                <p style={{ margin: '2px 0', lineHeight: '1.3', color: '#78350f' }}>DL Nº1278: Ley de Gestión Integral de Residuos Sólidos</p>
+                <p style={{ margin: '2px 0', lineHeight: '1.3', color: '#78350f' }}>Modificado por DL N°1501</p>
+                <p style={{ margin: '2px 0', lineHeight: '1.3', color: '#78350f' }}>Reglamento: DS Nº014-2017-MINAM</p>
               </div>
             </div>
           </Popup>
@@ -197,7 +203,7 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
 
               <ImageCarousel objectId={alerta.OBJECTID} />
               
-              <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
+              <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px solid #e2e8f0', marginBottom: '12px' }}>
                 <a 
                   href={"https://pifa.oefa.gob.pe/PortalReporta/Home/BuzonCiudadano/ConsultarAlerta?codAlerta=" + alerta.OBJECTID}
                   target="_blank"
@@ -206,6 +212,13 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
                 >
                   Ver Ficha Oficial ↗
                 </a>
+              </div>
+
+              <div style={{ fontSize: '9px', backgroundColor: '#fef3c7', padding: '6px', borderRadius: '3px', borderLeft: '3px solid #d97706' }}>
+                <p style={{ margin: '3px 0 2px 0', fontWeight: 'bold', color: '#92400e' }}>📋 MARCO LEGAL</p>
+                <p style={{ margin: '2px 0', lineHeight: '1.3', color: '#78350f' }}>DL Nº1278: Ley de Gestión Integral de Residuos Sólidos</p>
+                <p style={{ margin: '2px 0', lineHeight: '1.3', color: '#78350f' }}>Modificado por DL N°1501</p>
+                <p style={{ margin: '2px 0', lineHeight: '1.3', color: '#78350f' }}>Reglamento: DS Nº014-2017-MINAM</p>
               </div>
             </div>
           </Popup>
