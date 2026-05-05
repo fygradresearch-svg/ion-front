@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertTriangle, X, Navigation } from 'lucide-react';
+import { AlertTriangle, X, Navigation, Zap, AlertCircle } from 'lucide-react';
 
 interface AlertToastProps {
   show: boolean;
@@ -32,7 +32,7 @@ export default function AlertToast({ show, onClose, message, onNotify, onShowInf
   if (!show) return null;
 
   return (
-    <div className="fixed top-6 right-6 z-[9999] animate-in slide-in-from-right duration-500 max-w-sm w-full">
+    <div className="fixed top-6 right-6 z-[9999] animate-in slide-in-from-right duration-500 max-w-sm w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
       <div className="bg-white border-2 border-red-500 rounded-3xl shadow-2xl p-6 flex flex-col gap-4 overflow-hidden relative">
         {/* Decorative background accent */}
         <div className="absolute top-0 left-0 w-full h-1.5 bg-red-500 animate-pulse"></div>
@@ -74,6 +74,54 @@ export default function AlertToast({ show, onClose, message, onNotify, onShowInf
               <Navigation className="w-3 h-3" />
               Radio Crítico (20 metros)
             </div>
+          </div>
+        </div>
+
+        {/* New Informational Sections */}
+        <div className="space-y-4 pt-2 border-t border-slate-100">
+          {/* Acciones Inmediatas */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-emerald-600">
+              <div className="bg-emerald-100 p-1.5 rounded-lg">
+                <Zap className="w-4 h-4 fill-emerald-600" />
+              </div>
+              <h4 className="text-sm font-black uppercase tracking-tight">Acciones inmediatas</h4>
+            </div>
+            <ul className="space-y-1.5 ml-8">
+              {[
+                "No arrojes residuos ni manipules materiales peligrosos.",
+                "Mantén distancia si hay humo, malos olores o desechos riesgosos.",
+                "Toma foto o video solo si es seguro.",
+                "Si ves al infractor, evita confrontarlo."
+              ].map((text, i) => (
+                <li key={i} className="text-[11px] font-medium text-slate-600 flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1 flex-shrink-0" />
+                  {text}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Qué debes reportar */}
+          <div className="space-y-2 bg-red-50/50 p-4 rounded-2xl border border-red-100/50">
+            <div className="flex items-center gap-2 text-red-600">
+              <div className="bg-red-100 p-1.5 rounded-lg">
+                <AlertCircle className="w-4 h-4 fill-red-600 text-white" />
+              </div>
+              <h4 className="text-sm font-black uppercase tracking-tight">Qué debes reportar</h4>
+            </div>
+            <ul className="space-y-1.5 ml-2">
+              {[
+                "Registra ubicación, hora y tipo de residuo.",
+                "Si hay vehículo, anota la placa.",
+                "Solicita limpieza, fiscalización o señalización."
+              ].map((text, i) => (
+                <li key={i} className="text-[11px] font-bold text-red-700 flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1 flex-shrink-0" />
+                  {text}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
