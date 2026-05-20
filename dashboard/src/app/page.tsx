@@ -198,6 +198,24 @@ export default function Dashboard() {
         onToggle={() => setSidebarOpen(v => !v)}
       />
 
+      {/* Botón toggle — fixed z-50, siempre visible por encima de todo */}
+      <button
+        onClick={() => setSidebarOpen(v => !v)}
+        className={[
+          'fixed top-4 z-50',
+          'bg-white/90 backdrop-blur-md border border-slate-200 rounded-xl p-2.5 shadow-lg',
+          'hover:bg-white transition-all duration-300 ease-in-out active:scale-95',
+          sidebarOpen ? 'left-4 md:left-80' : 'left-4',
+        ].join(' ')}
+        aria-label={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
+        title={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
+      >
+        {sidebarOpen
+          ? <PanelLeftClose className="w-5 h-5 text-slate-700" />
+          : <PanelLeftOpen  className="w-5 h-5 text-slate-700" />
+        }
+      </button>
+
       <section className="flex-1 relative min-w-0">
         <Map
           data={data}
@@ -208,19 +226,6 @@ export default function Dashboard() {
           showHeatmap={showHeatmap}
           showContaminationLayer={showContaminationLayer}
         />
-
-        {/* Botón para abrir/cerrar sidebar */}
-        <button
-          onClick={() => setSidebarOpen(v => !v)}
-          className="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur-md border border-slate-200 rounded-xl p-2.5 shadow-lg hover:bg-white transition-all active:scale-95"
-          aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
-          title={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
-        >
-          {sidebarOpen
-            ? <PanelLeftClose className="w-5 h-5 text-slate-700" />
-            : <PanelLeftOpen  className="w-5 h-5 text-slate-700" />
-          }
-        </button>
 
         {/* Overlay localización actual */}
         <div className="absolute top-4 left-16 z-10 pointer-events-none">
