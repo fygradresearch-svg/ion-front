@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Papa from 'papaparse';
 import Map from '@/components/Map/Map';
 import Sidebar from '@/components/Dashboard/Sidebar';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import AlertToast from '@/components/UI/AlertToast';
 import InfoModal from '@/components/UI/InfoModal';
 import { Alerta, RankingItem } from '@/types';
-import { PanelLeftOpen, PanelLeftClose, Menu, Map as MapIcon } from 'lucide-react';
+import { PanelLeftOpen, PanelLeftClose, Menu, X } from 'lucide-react';
 
 export default function Dashboard() {
   const [data, setData] = useState<Alerta[]>([]);
@@ -18,16 +17,11 @@ export default function Dashboard() {
   const [targetCoords, setTargetCoords] = useState<[number, number] | null>(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [showContaminationLayer, setShowContaminationLayer] = useState(true);
-  
-  // Estado para GPS
   const [gpsActive, setGpsActive] = useState(false);
-  const [alertInfo, setAlertInfo] = useState<{ show: boolean; message: string }>({
-    show: false,
-    message: '',
-  });
+  const [alertInfo, setAlertInfo] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [notificationSuccess, setNotificationSuccess] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const onProximityAlert = useCallback((nearby: Alerta[]) => {
     if (nearby.length > 0 && !alertInfo.show) {
@@ -47,7 +41,7 @@ export default function Dashboard() {
         const url = "https://pifa.oefa.gob.pe/arcgis/rest/services/CiudadanoAmb/alertarrss_WebVisor/MapServer/0/query?where=1%3D1&outFields=*&f=json&outSR=4326";
         const response = await fetch(url);
         const data = await response.json();
-        
+
         const ESTADO_MAP: { [key: number]: string } = {
           1: "Pendiente validación",
           2: "No válida",
@@ -75,15 +69,14 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
   const departments = Array.from(new Set(data.map(d => d.NOMBDEP))).filter(Boolean);
-  const provinces = selectedDept 
+  const provinces = selectedDept
     ? Array.from(new Set(data.filter(d => d.NOMBDEP === selectedDept).map(d => d.NOMBPROV))).filter(Boolean)
     : [];
-  
+
   const stats = {
     total: data.length,
     atendidos: data.filter(d => d.ESTADO_DESC?.includes('Atendido')).length,
@@ -98,30 +91,25 @@ export default function Dashboard() {
       .reduce((acc: any, curr) => {
         const key = `${curr.NOMBDEP}-${curr.NOMBPROV}-${curr.NOMBDIST}`;
         if (!acc[key]) {
-          acc[key] = { 
-            district: curr.NOMBDIST, 
-            dept: curr.NOMBDEP, 
-            count: 0,
-            lat: curr.LATITUD,
-            lng: curr.LONGITUD
-          };
+          acc[key] = { district: curr.NOMBDIST, dept: curr.NOMBDEP, count: 0, lat: curr.LATITUD, lng: curr.LONGITUD };
         }
         acc[key].count += 1;
         return acc;
       }, {})
-  )
-    .sort((a: any, b: any) => b.count - a.count)
-    .slice(0, 10) as any[];
+  ).sort((a: any, b: any) => b.count - a.count).slice(0, 10) as any[];
 
   const handleSelectRanking = (item: any) => {
     setTargetCoords([item.lat, item.lng]);
     setSelectedDept(item.dept);
+    setSidebarOpen(false);
   };
 
   const handleSelectDept = (dept: string | null) => {
     setSelectedDept(dept);
     setSelectedProv(null);
   };
+
+  const toggleSidebar = () => setSidebarOpen(v => !v);
 
   if (loading) {
     return (
@@ -135,49 +123,29 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="flex h-screen w-screen bg-slate-50 text-slate-900 font-sans pt-14 md:pt-0">
-      {/* Header fijo — solo visible en móvil */}
-      <header className="fixed top-0 left-0 right-0 h-14 z-[9999] md:hidden bg-white/95 backdrop-blur-md border-b border-slate-200 flex items-center px-4 gap-3 shadow-sm">
-        <button
-          onClick={() => setSidebarOpen(v => !v)}
-          onTouchEnd={(e) => { e.preventDefault(); e.stopPropagation(); setSidebarOpen(v => !v); }}
-          className="p-2 rounded-xl hover:bg-slate-100 transition-colors active:scale-95"
-          style={{ touchAction: 'manipulation' }}
-          aria-label={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
-        >
-          <Menu className="w-5 h-5 text-slate-700" />
-        </button>
-        <MapIcon className="w-5 h-5 text-emerald-600 shrink-0" />
-        <span className="font-bold text-slate-900 text-sm">EcoWatch Dash</span>
-        <span className="ml-auto text-[10px] text-slate-500 font-medium tracking-wide uppercase">
-          Reporta Residuos OEFA
-        </span>
-      </header>
+    <main className="flex h-screen w-screen bg-slate-50 text-slate-900 font-sans">
 
-      {/* Backdrop móvil: cierra el sidebar al tocar fuera */}
-      {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          className="fixed top-14 inset-x-0 bottom-0 bg-black/40 z-30 md:hidden"
-          aria-hidden="true"
-        />
-      )}
+      {/* Botón hamburguesa móvil — z-index máximo, siempre visible encima de todo */}
+      <button
+        className="md:hidden fixed top-3 left-3 z-[99999] bg-white border border-slate-200 rounded-xl p-2.5 shadow-lg active:scale-95 transition-transform"
+        onClick={toggleSidebar}
+        onTouchEnd={(e) => { e.preventDefault(); toggleSidebar(); }}
+        aria-label={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
+      >
+        {sidebarOpen
+          ? <X className="w-5 h-5 text-slate-700" />
+          : <Menu className="w-5 h-5 text-slate-700" />}
+      </button>
 
       <AlertToast
-        show={alertInfo.show} 
-        message={alertInfo.message} 
-        onClose={() => setAlertInfo({ ...alertInfo, show: false })} 
-        onNotify={() => {
-          setNotificationSuccess(true);
-          setTimeout(() => setNotificationSuccess(false), 5000);
-        }}
+        show={alertInfo.show}
+        message={alertInfo.message}
+        onClose={() => setAlertInfo({ ...alertInfo, show: false })}
+        onNotify={() => { setNotificationSuccess(true); setTimeout(() => setNotificationSuccess(false), 5000); }}
         onShowInfo={() => setShowInfoModal(true)}
       />
 
-      <InfoModal 
-        isOpen={showInfoModal} 
-        onClose={() => setShowInfoModal(false)} 
-      />
+      <InfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />
 
       {notificationSuccess && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[10001] bg-emerald-600 text-white px-6 py-3 rounded-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 flex items-center gap-3">
@@ -205,20 +173,17 @@ export default function Dashboard() {
         showHeatmap={showHeatmap}
         onToggleHeatmap={(val: boolean) => {
           setShowHeatmap(val);
-          if (val) {
-            setTargetCoords([-11.5, -75.0]);
-            setSelectedDept('JUNIN');
-          }
+          if (val) { setTargetCoords([-11.5, -75.0]); setSelectedDept('JUNIN'); }
         }}
         showContaminationLayer={showContaminationLayer}
         onToggleContaminationLayer={setShowContaminationLayer}
         isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(v => !v)}
+        onToggle={toggleSidebar}
       />
 
-      {/* Botón toggle — solo desktop (móvil usa el header) */}
+      {/* Botón toggle — solo desktop */}
       <button
-        onClick={() => setSidebarOpen(v => !v)}
+        onClick={toggleSidebar}
         className={[
           'hidden md:flex fixed top-4 z-[9999] items-center justify-center',
           'bg-white/90 backdrop-blur-md border border-slate-200 rounded-xl p-2.5 shadow-lg',
@@ -226,15 +191,13 @@ export default function Dashboard() {
           sidebarOpen ? 'left-4 md:left-80' : 'left-4',
         ].join(' ')}
         aria-label={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
-        title={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
       >
         {sidebarOpen
           ? <PanelLeftClose className="w-5 h-5 text-slate-700" />
-          : <PanelLeftOpen  className="w-5 h-5 text-slate-700" />
-        }
+          : <PanelLeftOpen className="w-5 h-5 text-slate-700" />}
       </button>
 
-      <section className={`flex-1 relative min-w-0 overflow-hidden${sidebarOpen ? ' pointer-events-none md:pointer-events-auto' : ''}`}>
+      <section className="flex-1 relative min-w-0 overflow-hidden">
         <Map
           data={data}
           selectedDept={selectedDept}
@@ -245,7 +208,6 @@ export default function Dashboard() {
           showContaminationLayer={showContaminationLayer}
         />
 
-        {/* Overlay localización actual */}
         <div className="absolute top-4 left-16 z-10 pointer-events-none">
           <div className="bg-white/90 backdrop-blur-md border border-slate-200 px-4 py-2.5 rounded-2xl shadow-xl">
             <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">

@@ -34,13 +34,13 @@ export default function Sidebar({
 
   return (
     <aside className={[
-      'fixed top-14 bottom-0 left-0 z-40 w-80',
-      'md:relative md:top-0 md:bottom-auto md:inset-auto md:z-auto md:h-full',
       'bg-white border-r border-slate-200 flex flex-col overflow-hidden shadow-xl',
-      'sidebar-mobile md:transition-[width,transform] md:duration-300 md:ease-in-out',
-      isOpen
-        ? 'sidebar-mobile-open md:w-80'
-        : 'sidebar-mobile-closed md:translate-x-0 md:w-0 md:pointer-events-auto',
+      // Móvil: pantalla completa encima del mapa (abierto) o completamente invisible (cerrado)
+      isOpen ? 'fixed inset-0 z-[9998] pt-14' : 'hidden',
+      // Desktop: panel lateral, ancho animado
+      'md:static md:inset-auto md:z-auto md:h-full md:flex md:flex-col',
+      'md:transition-[width] md:duration-300 md:ease-in-out md:pt-0',
+      isOpen ? 'md:w-80' : 'md:w-0',
     ].join(' ')}>
       <div className="p-6 border-b border-slate-100 shrink-0">
         <div className="flex items-center gap-2 mb-2">
@@ -48,7 +48,7 @@ export default function Sidebar({
           <h1 className="text-xl font-bold text-slate-900 tracking-tight truncate">EcoWatch Dash</h1>
           <button
             onClick={onToggle}
-            className="ml-auto p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors shrink-0 hidden md:block"
+            className="ml-auto p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors shrink-0"
             aria-label="Cerrar menú"
           >
             <X className="w-4 h-4" />
