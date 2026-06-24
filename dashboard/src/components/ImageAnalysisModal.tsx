@@ -1,7 +1,7 @@
-// components/UI/ImageAnalysisModal.tsx
+// src/components/UI/ImageAnalysisModal.tsx
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import {
     X,
     Upload,
@@ -13,26 +13,21 @@ import {
     FileSpreadsheet,
     Printer,
     Share2,
-    CheckCircle,
-    AlertCircle,
-    TrendingUp,
-    BarChart3,
-    PieChart,
-    FileJson,
-    FileDown
+    CheckCircle
 } from 'lucide-react';
 
 interface AnalysisResult {
-    model2?: {
+    model1?: {
+        error: any;
         category: string;
         confidence: number;
         probabilities: Record<string, number>;
-        timestamp?: string;
-        modelInfo?: {
-            name: string;
-            version: string;
-            accuracy: number;
-        };
+    };
+    model2?: {
+        error: any;
+        category: string;
+        confidence: number;
+        probabilities: Record<string, number>;
     };
     error?: string;
 }
@@ -43,105 +38,29 @@ interface ImageAnalysisModalProps {
     alertId?: string;
 }
 
-// Datos simulados para el modelo 2 - Clasificación específica de residuos
-const generateMockResults = (): AnalysisResult => {
-    const categories = [
-        { name: 'Plástico PET', prob: 0.92 },
-        { name: 'Vidrio', prob: 0.03 },
-        { name: 'Papel/Cartón', prob: 0.02 },
-        { name: 'Metal', prob: 0.02 },
-        { name: 'Orgánico', prob: 0.01 }
-    ];
-
-    const probabilities: Record<string, number> = {};
-    categories.forEach(cat => {
-        probabilities[cat.name] = cat.prob * 100;
-    });
-
-    return {
-        model2: {
-            category: categories[0].name,
-            confidence: categories[0].prob * 100,
-            probabilities: probabilities,
-            timestamp: new Date().toISOString(),
-            modelInfo: {
-                name: 'ResNet-50 Fine-tuned',
-                version: 'v2.1.0',
-                accuracy: 94.7
-            }
-        }
-    };
-};
-
 export default function ImageAnalysisModal({ isOpen, onClose, alertId }: ImageAnalysisModalProps) {
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isDragging, setIsDragging] = useState(false);
+    const [modelType, setModelType] = useState<'both' | 'model1' | 'model2'>('both');
     const [isExporting, setIsExporting] = useState(false);
     const [exportSuccess, setExportSuccess] = useState(false);
-    const [exportFormat, setExportFormat] = useState<'json' | 'csv' | 'html' | 'pdf'>('json');
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const dropZoneRef = useRef<HTMLDivElement>(null);
-
-    // Manejar arrastre
-    const handleDragEnter = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(true);
-    }, []);
-
-    const handleDragLeave = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-    }, []);
-
-    const handleDragOver = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!isDragging) setIsDragging(true);
-    }, [isDragging]);
-
-    const handleDrop = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            const file = files[0];
-            if (file.type.startsWith('image/')) {
-                handleFileSelect(file);
-            } else {
-                setError('Por favor, solo sube imágenes (JPG, PNG, JPEG)');
-            }
-        }
-    }, []);
-
-    const handleFileSelect = (file: File) => {
-        if (file.size > 10 * 1024 * 1024) {
-            setError('La imagen es demasiado grande (máximo 10MB)');
-            return;
-        }
-
-        setSelectedImage(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-        setAnalysisResult(null);
-        setError(null);
-        setExportSuccess(false);
-    };
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            handleFileSelect(file);
+            setSelectedImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+            setAnalysisResult(null);
+            setError(null);
+            setExportSuccess(false);
         }
     };
 
@@ -157,11 +76,20 @@ export default function ImageAnalysisModal({ isOpen, onClose, alertId }: ImageAn
         setExportSuccess(false);
 
         try {
-            // Simular análisis - Aquí iría la llamada a tu API real
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            const formData = new FormData();
+            formData.append('image', selectedImage);
+            formData.append('modelType', modelType);
 
-            // Generar resultados simulados
-            const result = generateMockResults();
+            const response = await fetch('/api/analyze-image', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Error en el análisis');
+            }
+
+            const result = await response.json();
 
             if (result.error) {
                 setError(result.error);
@@ -186,9 +114,9 @@ export default function ImageAnalysisModal({ isOpen, onClose, alertId }: ImageAn
         }
     };
 
-    // Exportar resultados
-    const handleExport = async (format: 'json' | 'csv' | 'html' | 'pdf') => {
-        if (!analysisResult || !analysisResult.model2) {
+    // Función para exportar resultados
+    const handleExport = async (format: 'pdf' | 'excel' | 'json' | 'html') => {
+        if (!analysisResult) {
             setError('No hay resultados para exportar');
             return;
         }
@@ -197,27 +125,17 @@ export default function ImageAnalysisModal({ isOpen, onClose, alertId }: ImageAn
         setExportSuccess(false);
 
         try {
+            // Preparar datos para exportación
             const exportData = {
                 metadata: {
                     alertId: alertId || 'N/A',
                     analysisDate: new Date().toISOString(),
-                    modelName: analysisResult.model2.modelInfo?.name || 'ResNet-50',
-                    modelVersion: analysisResult.model2.modelInfo?.version || 'v2.1.0',
+                    modelType: modelType,
                     imageName: selectedImage?.name || 'unknown.jpg',
                     imageSize: selectedImage?.size ? `${(selectedImage.size / 1024).toFixed(2)} KB` : 'N/A',
-                    timestamp: analysisResult.model2.timestamp || new Date().toISOString()
                 },
-                results: {
-                    category: analysisResult.model2.category,
-                    confidence: analysisResult.model2.confidence,
-                    probabilities: analysisResult.model2.probabilities,
-                    modelInfo: analysisResult.model2.modelInfo
-                },
-                summary: {
-                    bestCategory: analysisResult.model2.category,
-                    bestConfidence: analysisResult.model2.confidence,
-                    modelUsed: analysisResult.model2.modelInfo?.name || 'ResNet-50'
-                }
+                results: analysisResult,
+                summary: generateSummary(analysisResult)
             };
 
             let content: string | Blob;
@@ -231,19 +149,20 @@ export default function ImageAnalysisModal({ isOpen, onClose, alertId }: ImageAn
                     mimeType = 'application/json';
                     break;
 
-                case 'csv':
-                    content = generateCSV(exportData);
-                    filename = `analisis-residuos-${alertId || 'reporte'}-${Date.now()}.csv`;
-                    mimeType = 'text/csv';
-                    break;
-
                 case 'html':
                     content = generateHTMLReport(exportData);
                     filename = `analisis-residuos-${alertId || 'reporte'}-${Date.now()}.html`;
                     mimeType = 'text/html';
                     break;
 
+                case 'excel':
+                    content = generateCSVReport(exportData);
+                    filename = `analisis-residuos-${alertId || 'reporte'}-${Date.now()}.csv`;
+                    mimeType = 'text/csv';
+                    break;
+
                 case 'pdf':
+                    // Para PDF, usamos HTML y luego convertimos a PDF (simulación)
                     content = generateHTMLReport(exportData);
                     filename = `analisis-residuos-${alertId || 'reporte'}-${Date.now()}.html`;
                     mimeType = 'text/html';
@@ -253,8 +172,11 @@ export default function ImageAnalysisModal({ isOpen, onClose, alertId }: ImageAn
                     throw new Error('Formato no soportado');
             }
 
-            // Descargar
-            const blob = new Blob([content as BlobPart], { type: mimeType });
+            // Descargar archivo
+            const blob = new Blob(
+                [content as BlobPart],
+                { type: mimeType }
+            );
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -274,64 +196,150 @@ export default function ImageAnalysisModal({ isOpen, onClose, alertId }: ImageAn
         }
     };
 
-    // Generar CSV
-    const generateCSV = (data: any) => {
+    // Generar resumen de resultados
+    const generateSummary = (result: AnalysisResult) => {
+        const summary = {
+            bestCategory: '',
+            bestConfidence: 0,
+            modelUsed: '',
+            totalModels: 0
+        };
+
+        if (result.model1 && !result.model1.error) {
+            summary.totalModels++;
+            if (result.model1.confidence > summary.bestConfidence) {
+                summary.bestConfidence = result.model1.confidence;
+                summary.bestCategory = result.model1.category;
+                summary.modelUsed = 'Modelo 1';
+            }
+        }
+
+        if (result.model2 && !result.model2.error) {
+            summary.totalModels++;
+            if (result.model2.confidence > summary.bestConfidence) {
+                summary.bestConfidence = result.model2.confidence;
+                summary.bestCategory = result.model2.category;
+                summary.modelUsed = 'Modelo 2';
+            }
+        }
+
+        return summary;
+    };
+
+    // Generar reporte CSV
+    const generateCSVReport = (data: any) => {
         const rows = [
-            ['=== METADATOS ==='],
+            ['Metadata', 'Valor'],
             ['Alerta ID', data.metadata.alertId],
             ['Fecha Análisis', data.metadata.analysisDate],
-            ['Modelo', data.metadata.modelName],
-            ['Versión', data.metadata.modelVersion],
+            ['Modelo', data.metadata.modelType],
             ['Imagen', data.metadata.imageName],
             ['Tamaño', data.metadata.imageSize],
             [],
-            ['=== RESULTADOS ==='],
-            ['Categoría', data.results.category],
-            ['Confianza', `${data.results.confidence.toFixed(2)}%`],
-            [],
-            ['=== PROBABILIDADES ==='],
-            ...Object.entries(data.results.probabilities).map(([cat, prob]) => [
-                cat,
-                `${(prob as number).toFixed(2)}%`
-            ]),
-            [],
-            ['=== RESUMEN ==='],
-            ['Mejor Categoría', data.summary.bestCategory],
-            ['Confianza Máxima', `${data.summary.bestConfidence.toFixed(2)}%`],
-            ['Modelo Usado', data.summary.modelUsed]
+            ['Resultados', ''],
         ];
+
+        // Agregar resultados del modelo 1
+        if (data.results.model1 && !data.results.model1.error) {
+            rows.push(['MODELO 1 - Clasificación General', '']);
+            rows.push(['Categoría', data.results.model1.category]);
+            rows.push(['Confianza', `${data.results.model1.confidence.toFixed(2)}%`]);
+            rows.push(['Probabilidades', '']);
+            Object.entries(data.results.model1.probabilities).forEach(([cat, prob]) => {
+                rows.push([`  ${cat}`, `${(prob as number).toFixed(2)}%`]);
+            });
+            rows.push([]);
+        }
+
+        // Agregar resultados del modelo 2
+        if (data.results.model2 && !data.results.model2.error) {
+            rows.push(['MODELO 2 - Clasificación Específica', '']);
+            rows.push(['Categoría', data.results.model2.category]);
+            rows.push(['Confianza', `${data.results.model2.confidence.toFixed(2)}%`]);
+            rows.push(['Probabilidades', '']);
+            Object.entries(data.results.model2.probabilities).forEach(([cat, prob]) => {
+                rows.push([`  ${cat}`, `${(prob as number).toFixed(2)}%`]);
+            });
+            rows.push([]);
+        }
+
+        // Resumen
+        rows.push(['RESUMEN', '']);
+        rows.push(['Mejor Categoría', data.summary.bestCategory]);
+        rows.push(['Confianza Máxima', `${data.summary.bestConfidence.toFixed(2)}%`]);
+        rows.push(['Modelo Usado', data.summary.modelUsed]);
+        rows.push(['Total Modelos', data.summary.totalModels]);
 
         return rows.map(row => row.join(',')).join('\n');
     };
 
-    // Generar HTML Report
+    // Generar reporte HTML
     const generateHTMLReport = (data: any) => {
         const getConfidenceColor = (confidence: number) => {
-            if (confidence > 80) return '#10b981';
-            if (confidence > 60) return '#f59e0b';
-            if (confidence > 40) return '#f97316';
+            if (confidence > 70) return '#10b981';
+            if (confidence > 40) return '#f59e0b';
             return '#ef4444';
         };
 
-        const getConfidenceEmoji = (confidence: number) => {
-            if (confidence > 80) return '🟢';
-            if (confidence > 60) return '🟡';
-            if (confidence > 40) return '🟠';
-            return '🔴';
-        };
-
-        const probabilitiesHTML = Object.entries(data.results.probabilities)
-            .map(([cat, prob]) => `
-                <div style="margin-bottom: 8px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 3px;">
-                        <span>${cat}</span>
-                        <span style="font-weight: 500;">${(prob as number).toFixed(2)}%</span>
+        const model1HTML = data.results.model1 && !data.results.model1.error ? `
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                <h3 style="color: #1e40af; margin-bottom: 12px;">🧠 Modelo 1: Clasificación General</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div style="background: white; padding: 12px; border-radius: 6px;">
+                        <p style="font-size: 12px; color: #6b7280;">Categoría</p>
+                        <p style="font-weight: bold; color: #1e40af;">${data.results.model1.category}</p>
                     </div>
-                    <div style="width: 100%; background: #f3f4f6; height: 6px; border-radius: 3px; overflow: hidden;">
-                        <div style="width: ${Math.min((prob as number), 100)}%; height: 100%; background: ${getConfidenceColor(prob as number)}; border-radius: 3px; transition: width 0.5s;"></div>
+                    <div style="background: white; padding: 12px; border-radius: 6px;">
+                        <p style="font-size: 12px; color: #6b7280;">Confianza</p>
+                        <p style="font-weight: bold; color: ${getConfidenceColor(data.results.model1.confidence)};">${data.results.model1.confidence.toFixed(2)}%</p>
                     </div>
                 </div>
-            `).join('');
+                <div style="background: white; padding: 12px; border-radius: 6px;">
+                    <p style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">Probabilidades</p>
+                    ${Object.entries(data.results.model1.probabilities).map(([cat, prob]) => `
+                        <div style="margin-bottom: 6px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                                <span>${cat}</span>
+                                <span>${(prob as number).toFixed(2)}%</span>
+                            </div>
+                            <div style="width: 100%; background: #e5e7eb; height: 4px; border-radius: 2px; overflow: hidden;">
+                                <div style="width: ${Math.min((prob as number), 100)}%; height: 100%; background: ${getConfidenceColor(prob as number)};"></div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        ` : '';
+
+        const model2HTML = data.results.model2 && !data.results.model2.error ? `
+            <div style="background: #f3e8ff; border: 1px solid #d8b4fe; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                <h3 style="color: #6b21a8; margin-bottom: 12px;">🧠 Modelo 2: Clasificación Específica</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div style="background: white; padding: 12px; border-radius: 6px;">
+                        <p style="font-size: 12px; color: #6b7280;">Categoría</p>
+                        <p style="font-weight: bold; color: #6b21a8;">${data.results.model2.category}</p>
+                    </div>
+                    <div style="background: white; padding: 12px; border-radius: 6px;">
+                        <p style="font-size: 12px; color: #6b7280;">Confianza</p>
+                        <p style="font-weight: bold; color: ${getConfidenceColor(data.results.model2.confidence)};">${data.results.model2.confidence.toFixed(2)}%</p>
+                    </div>
+                </div>
+                <div style="background: white; padding: 12px; border-radius: 6px;">
+                    <p style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">Probabilidades</p>
+                    ${Object.entries(data.results.model2.probabilities).map(([cat, prob]) => `
+                        <div style="margin-bottom: 6px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                                <span>${cat}</span>
+                                <span>${(prob as number).toFixed(2)}%</span>
+                            </div>
+                            <div style="width: 100%; background: #e5e7eb; height: 4px; border-radius: 2px; overflow: hidden;">
+                                <div style="width: ${Math.min((prob as number), 100)}%; height: 100%; background: ${getConfidenceColor(prob as number)};"></div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        ` : '';
 
         return `<!DOCTYPE html>
         <html>
@@ -340,224 +348,162 @@ export default function ImageAnalysisModal({ isOpen, onClose, alertId }: ImageAn
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Reporte de Análisis - Residuos</title>
             <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body {
+                body { 
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 40px 20px;
                     background: #f8fafc;
                     color: #1e293b;
-                    padding: 40px 20px;
-                    line-height: 1.6;
-                }
-                .container {
-                    max-width: 900px;
-                    margin: 0 auto;
-                    background: white;
-                    border-radius: 16px;
-                    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-                    overflow: hidden;
                 }
                 .header {
                     background: linear-gradient(135deg, #10b981, #3b82f6);
                     color: white;
-                    padding: 40px 50px;
+                    padding: 30px;
+                    border-radius: 12px;
+                    margin-bottom: 30px;
                 }
-                .header h1 { font-size: 28px; margin-bottom: 8px; }
-                .header p { opacity: 0.9; font-size: 14px; }
-                .badge {
-                    display: inline-block;
-                    background: rgba(255,255,255,0.2);
-                    padding: 4px 12px;
-                    border-radius: 20px;
-                    font-size: 12px;
-                    margin-top: 8px;
+                .header h1 { margin: 0; font-size: 24px; }
+                .header p { margin: 8px 0 0; opacity: 0.9; font-size: 14px; }
+                .metadata {
+                    background: white;
+                    border-radius: 8px;
+                    padding: 16px;
+                    margin-bottom: 24px;
+                    border: 1px solid #e2e8f0;
                 }
-                .content { padding: 40px 50px; }
-                .section {
-                    margin-bottom: 32px;
-                    border-bottom: 1px solid #e2e8f0;
-                    padding-bottom: 24px;
-                }
-                .section:last-child { border-bottom: none; margin-bottom: 0; }
-                .section-title {
-                    font-size: 18px;
-                    font-weight: 600;
-                    color: #0f172a;
-                    margin-bottom: 16px;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                }
-                .grid-2 {
+                .metadata-grid {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
-                    gap: 16px;
+                    gap: 8px;
                 }
-                .card {
-                    background: #f8fafc;
-                    padding: 16px;
+                .metadata-item {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 4px 0;
+                    font-size: 13px;
+                    border-bottom: 1px solid #f1f5f9;
+                }
+                .metadata-item:last-child { border-bottom: none; }
+                .metadata-label { color: #64748b; }
+                .metadata-value { font-weight: 500; }
+                .summary {
+                    background: #f0fdf4;
+                    border: 1px solid #bbf7d0;
                     border-radius: 8px;
-                    border: 1px solid #e2e8f0;
-                }
-                .card-label { font-size: 12px; color: #64748b; margin-bottom: 4px; }
-                .card-value { font-size: 18px; font-weight: 600; color: #0f172a; }
-                .result-card {
-                    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
-                    border: 2px solid #10b981;
-                    border-radius: 12px;
-                    padding: 24px;
+                    padding: 16px;
                     margin-bottom: 24px;
+                }
+                .summary-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 12px;
+                }
+                .summary-item {
                     text-align: center;
+                    background: white;
+                    padding: 12px;
+                    border-radius: 6px;
                 }
-                .result-card .category {
-                    font-size: 32px;
-                    font-weight: 700;
-                    color: #065f46;
-                    margin-bottom: 4px;
-                }
-                .result-card .confidence {
-                    font-size: 16px;
+                .summary-item .value {
+                    font-size: 20px;
+                    font-weight: bold;
                     color: #059669;
                 }
-                .result-card .model-info {
-                    font-size: 13px;
+                .summary-item .label {
+                    font-size: 11px;
                     color: #64748b;
-                    margin-top: 8px;
-                }
-                .probabilities-section {
-                    background: #f8fafc;
-                    border-radius: 12px;
-                    padding: 20px;
-                    border: 1px solid #e2e8f0;
-                }
-                .probabilities-section h4 {
-                    font-size: 14px;
-                    color: #475569;
-                    margin-bottom: 12px;
+                    margin-top: 4px;
                 }
                 .footer {
-                    background: #f1f5f9;
-                    padding: 20px 50px;
+                    margin-top: 40px;
+                    padding-top: 20px;
+                    border-top: 1px solid #e2e8f0;
                     text-align: center;
                     font-size: 12px;
                     color: #94a3b8;
                 }
-                .footer p { margin-bottom: 4px; }
                 @media print {
-                    body { background: white; padding: 0; }
-                    .container { box-shadow: none; border-radius: 0; }
+                    body { background: white; padding: 20px; }
                     .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                }
-                @media (max-width: 600px) {
-                    .header { padding: 24px 20px; }
-                    .content { padding: 24px 20px; }
-                    .footer { padding: 16px 20px; }
-                    .grid-2 { grid-template-columns: 1fr; }
-                    .result-card .category { font-size: 24px; }
+                    .summary-item .value { color: #059669 !important; }
                 }
             </style>
         </head>
         <body>
-            <div class="container">
-                <div class="header">
-                    <h1>♻️ Reporte de Análisis de Residuos</h1>
-                    <p>Clasificación inteligente con IA - Alerta #${data.metadata.alertId}</p>
-                    <span class="badge">${new Date(data.metadata.analysisDate).toLocaleString('es-PE')}</span>
-                </div>
+            <div class="header">
+                <h1>📊 Reporte de Análisis de Residuos</h1>
+                <p>Alerta #${data.metadata.alertId} - ${new Date(data.metadata.analysisDate).toLocaleString('es-PE')}</p>
+            </div>
 
-                <div class="content">
-                    <!-- Resultado Principal -->
-                    <div class="result-card">
-                        <div class="category">${data.results.category}</div>
-                        <div class="confidence">${getConfidenceEmoji(data.results.confidence)} Confianza: ${data.results.confidence.toFixed(2)}%</div>
-                        <div class="model-info">
-                            ${data.results.modelInfo?.name || 'ResNet-50'} v${data.results.modelInfo?.version || '2.1.0'} 
-                            • Precisión: ${data.results.modelInfo?.accuracy || 94.7}%
-                        </div>
+            <div class="metadata">
+                <h3 style="margin: 0 0 12px; font-size: 14px; color: #475569;">📋 Metadatos</h3>
+                <div class="metadata-grid">
+                    <div class="metadata-item">
+                        <span class="metadata-label">Alerta ID</span>
+                        <span class="metadata-value">#${data.metadata.alertId}</span>
                     </div>
-
-                    <!-- Metadatos -->
-                    <div class="section">
-                        <h3 class="section-title">📋 Metadatos</h3>
-                        <div class="grid-2">
-                            <div class="card">
-                                <div class="card-label">Alerta ID</div>
-                                <div class="card-value">#${data.metadata.alertId}</div>
-                            </div>
-                            <div class="card">
-                                <div class="card-label">Fecha Análisis</div>
-                                <div class="card-value">${new Date(data.metadata.analysisDate).toLocaleString('es-PE')}</div>
-                            </div>
-                            <div class="card">
-                                <div class="card-label">Modelo</div>
-                                <div class="card-value">${data.metadata.modelName}</div>
-                            </div>
-                            <div class="card">
-                                <div class="card-label">Imagen</div>
-                                <div class="card-value" style="font-size: 14px;">${data.metadata.imageName}</div>
-                            </div>
-                        </div>
+                    <div class="metadata-item">
+                        <span class="metadata-label">Fecha Análisis</span>
+                        <span class="metadata-value">${new Date(data.metadata.analysisDate).toLocaleString('es-PE')}</span>
                     </div>
-
-                    <!-- Probabilidades -->
-                    <div class="section">
-                        <h3 class="section-title">📊 Distribución de Probabilidades</h3>
-                        <div class="probabilities-section">
-                            <h4>Probabilidad por categoría</h4>
-                            ${probabilitiesHTML}
-                        </div>
+                    <div class="metadata-item">
+                        <span class="metadata-label">Modelo</span>
+                        <span class="metadata-value">${data.metadata.modelType}</span>
                     </div>
-
-                    <!-- Resumen -->
-                    <div class="section">
-                        <h3 class="section-title">🎯 Resumen Ejecutivo</h3>
-                        <div class="grid-2">
-                            <div class="card" style="background: #eff6ff; border-color: #bfdbfe;">
-                                <div class="card-label">Categoría Detectada</div>
-                                <div class="card-value" style="color: #1e40af;">${data.summary.bestCategory}</div>
-                            </div>
-                            <div class="card" style="background: #f0fdf4; border-color: #bbf7d0;">
-                                <div class="card-label">Nivel de Confianza</div>
-                                <div class="card-value" style="color: #059669;">${data.summary.bestConfidence.toFixed(2)}%</div>
-                            </div>
-                        </div>
-                        <div style="margin-top: 12px; padding: 16px; background: #fef3c7; border-radius: 8px; border: 1px solid #fcd34d;">
-                            <p style="font-size: 14px; color: #92400e;">
-                                💡 <strong>Recomendación:</strong> Basado en el análisis, se recomienda 
-                                ${data.results.category.toLowerCase().includes('plástico') ? 'reciclar en plantas especializadas' :
-            data.results.category.toLowerCase().includes('vidrio') ? 'llevar a centros de reciclaje de vidrio' :
-                data.results.category.toLowerCase().includes('papel') ? 'separar para reciclaje de papel y cartón' :
-                    'disponer según normativa local'}.
-                            </p>
-                        </div>
+                    <div class="metadata-item">
+                        <span class="metadata-label">Imagen</span>
+                        <span class="metadata-value">${data.metadata.imageName}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="metadata-label">Tamaño</span>
+                        <span class="metadata-value">${data.metadata.imageSize}</span>
                     </div>
                 </div>
+            </div>
 
-                <div class="footer">
-                    <p>Reporte generado por Sistema de Gestión de Residuos Inteligente</p>
-                    <p style="font-size: 10px;">${new Date().toISOString()}</p>
+            ${data.results.model1 && !data.results.model1.error ? model1HTML : ''}
+            ${data.results.model2 && !data.results.model2.error ? model2HTML : ''}
+
+            <div class="summary">
+                <h3 style="margin: 0 0 12px; font-size: 14px; color: #065f46;">🎯 Resumen</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="value">${data.summary.bestCategory}</div>
+                        <div class="label">Mejor Categoría</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="value">${data.summary.bestConfidence.toFixed(2)}%</div>
+                        <div class="label">Confianza Máxima</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="value">${data.summary.modelUsed}</div>
+                        <div class="label">Modelo Usado</div>
+                    </div>
                 </div>
+            </div>
+
+            <div class="footer">
+                <p>Reporte generado por Sistema de Gestión de Residuos Inteligente</p>
+                <p style="font-size: 10px;">${new Date().toISOString()}</p>
             </div>
         </body>
         </html>`;
     };
 
-    // Renderizar barra de probabilidades
-    const renderProbabilityBar = (label: string, value: number) => {
-        const percentage = Math.min(value, 100);
-        const color = percentage > 80 ? 'bg-emerald-500' :
-            percentage > 60 ? 'bg-yellow-500' :
-                percentage > 40 ? 'bg-orange-500' :
-                    'bg-red-500';
+    const renderProbabilityBar = (label: string, value: number, maxValue: number = 100) => {
+        const percentage = Math.min((value / maxValue) * 100, 100);
+        const color = percentage > 70 ? 'bg-emerald-500' : percentage > 40 ? 'bg-yellow-500' : 'bg-red-500';
 
         return (
-            <div key={label} className="mb-3">
-                <div className="flex justify-between text-sm mb-1">
+            <div key={label} className="mb-2">
+                <div className="flex justify-between text-xs mb-1">
                     <span className="font-medium text-gray-700">{label}</span>
-                    <span className="text-gray-500 font-medium">{value.toFixed(2)}%</span>
+                    <span className="text-gray-500">{value.toFixed(2)}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-gray-200 rounded-full h-1.5">
                     <div
-                        className={`${color} h-2 rounded-full transition-all duration-1000 ease-out`}
+                        className={`${color} h-1.5 rounded-full transition-all duration-500`}
                         style={{ width: `${percentage}%` }}
                     />
                 </div>
@@ -565,156 +511,211 @@ export default function ImageAnalysisModal({ isOpen, onClose, alertId }: ImageAn
         );
     };
 
+    const renderAnalysisResult = () => {
+        if (!analysisResult) return null;
+
+        if (analysisResult.error) {
+            return (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-red-600 text-sm">{analysisResult.error}</p>
+                </div>
+            );
+        }
+
+        return (
+            <div className="space-y-6 mt-4">
+                {/* Modelo 1 */}
+                {analysisResult.model1 && !analysisResult.model1.error && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-blue-800 text-sm mb-2">🧠 Modelo 1: Clasificación General</h4>
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div className="bg-white rounded-lg p-3 shadow-sm">
+                                <p className="text-xs text-gray-500">Categoría</p>
+                                <p className="font-bold text-blue-700">{analysisResult.model1.category}</p>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 shadow-sm">
+                                <p className="text-xs text-gray-500">Confianza</p>
+                                <p className="font-bold text-emerald-600">{analysisResult.model1.confidence.toFixed(2)}%</p>
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3">
+                            <p className="text-xs text-gray-500 mb-2">Probabilidades</p>
+                            {Object.entries(analysisResult.model1.probabilities).map(([category, prob]) =>
+                                renderProbabilityBar(category, prob)
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Modelo 2 */}
+                {analysisResult.model2 && !analysisResult.model2.error && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-purple-800 text-sm mb-2">🧠 Modelo 2: Clasificación Específica</h4>
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div className="bg-white rounded-lg p-3 shadow-sm">
+                                <p className="text-xs text-gray-500">Categoría</p>
+                                <p className="font-bold text-purple-700">{analysisResult.model2.category}</p>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 shadow-sm">
+                                <p className="text-xs text-gray-500">Confianza</p>
+                                <p className="font-bold text-emerald-600">{analysisResult.model2.confidence.toFixed(2)}%</p>
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3">
+                            <p className="text-xs text-gray-500 mb-2">Probabilidades</p>
+                            {Object.entries(analysisResult.model2.probabilities).map(([category, prob]) =>
+                                renderProbabilityBar(category, prob)
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center">
             {/* Overlay */}
             <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                 onClick={onClose}
             />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden">
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto m-4">
                 {/* Header */}
-                <div className="sticky top-0 bg-gradient-to-r from-emerald-500 to-blue-500 px-6 py-4 flex items-center justify-between z-10">
+                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl flex items-center justify-between z-10">
                     <div>
-                        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                            <span>🧪</span> Análisis de Residuos
-                            {alertId && (
-                                <span className="text-sm font-normal text-white/80 ml-2">
-                                    Alerta #{alertId}
-                                </span>
-                            )}
+                        <h2 className="text-lg font-bold text-gray-900">
+                            🧪 Análisis de Residuos
+                            {alertId && <span className="text-sm font-normal text-gray-500 ml-2">Alerta #{alertId}</span>}
                         </h2>
-                        <p className="text-xs text-white/80">Clasificación inteligente con IA - Modelo ResNet-50</p>
+                        <p className="text-xs text-gray-500">Clasificación inteligente de residuos con IA</p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-white/20 rounded-full transition-colors text-white"
+                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-5 h-5 text-gray-500" />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="p-6 overflow-y-auto max-h-[calc(95vh-140px)]">
-                    {/* Área de arrastre y subida */}
-                    <div
-                        ref={dropZoneRef}
-                        onDragEnter={handleDragEnter}
-                        onDragLeave={handleDragLeave}
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                        className={`
-                            relative border-2 border-dashed rounded-xl p-8 text-center 
-                            transition-all duration-300 cursor-pointer
-                            ${isDragging ? 'border-emerald-500 bg-emerald-50 scale-[1.02]' : 'border-gray-300 hover:border-emerald-400 bg-gray-50/50 hover:bg-gray-50'}
-                            ${preview ? 'p-2' : 'p-12'}
-                        `}
-                        onClick={() => !preview && fileInputRef.current?.click()}
-                    >
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageSelect}
-                            className="hidden"
-                        />
+                <div className="p-6">
+                    {/* Selector de modelo */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Modelo de clasificación
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={() => setModelType('both')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                    modelType === 'both'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                            >
+                                Ambos modelos
+                            </button>
+                            <button
+                                onClick={() => setModelType('model1')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                    modelType === 'model1'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                            >
+                                Modelo 1
+                            </button>
+                            <button
+                                onClick={() => setModelType('model2')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                    modelType === 'model2'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                            >
+                                Modelo 2
+                            </button>
+                        </div>
+                    </div>
 
-                        {preview ? (
-                            <div className="relative group">
-                                <img
-                                    src={preview}
-                                    alt="Vista previa"
-                                    className="max-h-72 mx-auto rounded-lg object-contain"
-                                />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            fileInputRef.current?.click();
-                                        }}
-                                        className="bg-white/90 hover:bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                                    >
-                                        Cambiar imagen
-                                    </button>
+                    {/* Upload area */}
+                    <div className="mb-4">
+                        <div
+                            className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-500 transition-colors cursor-pointer"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageSelect}
+                                className="hidden"
+                            />
+                            {preview ? (
+                                <div className="relative">
+                                    <img
+                                        src={preview}
+                                        alt="Preview"
+                                        className="max-h-64 mx-auto rounded-lg object-contain"
+                                    />
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             handleClear();
                                         }}
-                                        className="bg-red-500/90 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>
                                 </div>
-                            </div>
-                        ) : (
-                            <div>
-                                <div className={`
-                                    w-20 h-20 mx-auto mb-4 rounded-full 
-                                    flex items-center justify-center transition-all duration-300
-                                    ${isDragging ? 'bg-emerald-100 scale-110' : 'bg-gray-100'}
-                                `}>
-                                    {isDragging ? (
-                                        <Upload className="w-10 h-10 text-emerald-500 animate-bounce" />
-                                    ) : (
-                                        <Upload className="w-10 h-10 text-gray-400" />
-                                    )}
+                            ) : (
+                                <div>
+                                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                                    <p className="text-gray-600 font-medium">Haz clic para subir una imagen</p>
+                                    <p className="text-gray-400 text-sm">JPG, PNG, JPEG (max 10MB)</p>
                                 </div>
-                                <p className="text-gray-600 font-medium text-lg mb-1">
-                                    {isDragging ? 'Suelta la imagen aquí' : 'Arrastra y suelta tu imagen'}
-                                </p>
-                                <p className="text-gray-400 text-sm">
-                                    o haz clic para seleccionar un archivo
-                                </p>
-                                <div className="mt-4 flex flex-wrap justify-center gap-2 text-xs text-gray-400">
-                                    <span className="px-2 py-1 bg-gray-100 rounded-full">📷 JPG</span>
-                                    <span className="px-2 py-1 bg-gray-100 rounded-full">🖼️ PNG</span>
-                                    <span className="px-2 py-1 bg-gray-100 rounded-full">📐 Max 10MB</span>
-                                </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
 
-                    {/* Acciones */}
+                    {/* Actions - Análisis y Exportación */}
                     {selectedImage && (
-                        <div className="mt-4 flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-3">
                             <button
                                 onClick={handleAnalyze}
                                 disabled={loading}
-                                className="flex-1 min-w-[180px] bg-gradient-to-r from-emerald-500 to-blue-500 text-white py-3 px-6 rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="flex-1 min-w-[120px] bg-gradient-to-r from-emerald-500 to-blue-500 text-white py-3 rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {loading ? (
                                     <>
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                        Analizando con IA...
+                                        <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
+                                        Analizando...
                                     </>
                                 ) : (
-                                    <>
-                                        <span>🔍</span> Analizar imagen
-                                    </>
+                                    '🔍 Analizar imagen'
                                 )}
                             </button>
 
+                            {/* Botones de exportación - solo si hay resultados */}
                             {analysisResult && !analysisResult.error && (
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 w-full mt-2">
                                     <button
                                         onClick={() => handleExport('json')}
                                         disabled={isExporting}
-                                        className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all flex items-center gap-1.5 disabled:opacity-50"
-                                        title="Exportar JSON"
+                                        className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1 disabled:opacity-50"
                                     >
-                                        <FileJson className="w-4 h-4" />
+                                        <FileText className="w-4 h-4" />
                                         JSON
                                     </button>
                                     <button
-                                        onClick={() => handleExport('csv')}
+                                        onClick={() => handleExport('excel')}
                                         disabled={isExporting}
-                                        className="px-4 py-3 bg-green-100 hover:bg-green-200 text-green-700 rounded-xl font-medium transition-all flex items-center gap-1.5 disabled:opacity-50"
-                                        title="Exportar CSV"
+                                        className="flex-1 bg-green-100 hover:bg-green-200 text-green-700 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1 disabled:opacity-50"
                                     >
                                         <FileSpreadsheet className="w-4 h-4" />
                                         CSV
@@ -722,19 +723,17 @@ export default function ImageAnalysisModal({ isOpen, onClose, alertId }: ImageAn
                                     <button
                                         onClick={() => handleExport('html')}
                                         disabled={isExporting}
-                                        className="px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl font-medium transition-all flex items-center gap-1.5 disabled:opacity-50"
-                                        title="Exportar HTML"
+                                        className="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1 disabled:opacity-50"
                                     >
-                                        <FileText className="w-4 h-4" />
+                                        <Printer className="w-4 h-4" />
                                         HTML
                                     </button>
                                     <button
                                         onClick={() => handleExport('pdf')}
                                         disabled={isExporting}
-                                        className="px-4 py-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl font-medium transition-all flex items-center gap-1.5 disabled:opacity-50"
-                                        title="Exportar PDF"
+                                        className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1 disabled:opacity-50"
                                     >
-                                        <FileDown className="w-4 h-4" />
+                                        <Download className="w-4 h-4" />
                                         PDF
                                     </button>
                                 </div>
@@ -742,136 +741,36 @@ export default function ImageAnalysisModal({ isOpen, onClose, alertId }: ImageAn
                         </div>
                     )}
 
-                    {/* Mensaje de exportación exitosa */}
+                    {/* Mensaje de éxito en exportación */}
                     {exportSuccess && (
-                        <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-                            <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                        <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center gap-2 animate-in fade-in">
+                            <CheckCircle className="w-4 h-4 text-emerald-500" />
                             <p className="text-emerald-700 text-sm font-medium">¡Exportación completada con éxito!</p>
                         </div>
                     )}
 
                     {/* Error */}
                     {error && (
-                        <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-2">
-                            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                            <div>
-                                <p className="text-red-600 font-medium text-sm">Error</p>
-                                <p className="text-red-500 text-sm">{error}</p>
-                            </div>
+                        <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p className="text-red-600 text-sm">{error}</p>
                         </div>
                     )}
 
                     {/* Resultados */}
-                    {analysisResult && analysisResult.model2 && (
-                        <div className="mt-6 space-y-4">
-                            {/* Tarjeta de resultado principal */}
-                            <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-xl p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div>
-                                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                                            Resultado del análisis
-                                        </p>
-                                        <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                                            {analysisResult.model2.category}
-                                        </h3>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm">
-                                            <span className="text-sm text-gray-500">Confianza</span>
-                                            <span className="text-xl font-bold text-emerald-600">
-                                                {analysisResult.model2.confidence.toFixed(2)}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                                        <p className="text-xs text-gray-400">Modelo</p>
-                                        <p className="text-sm font-semibold text-gray-700">
-                                            {analysisResult.model2.modelInfo?.name || 'ResNet-50'}
-                                        </p>
-                                    </div>
-                                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                                        <p className="text-xs text-gray-400">Versión</p>
-                                        <p className="text-sm font-semibold text-gray-700">
-                                            {analysisResult.model2.modelInfo?.version || 'v2.1.0'}
-                                        </p>
-                                    </div>
-                                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                                        <p className="text-xs text-gray-400">Precisión</p>
-                                        <p className="text-sm font-semibold text-gray-700">
-                                            {analysisResult.model2.modelInfo?.accuracy || 94.7}%
-                                        </p>
-                                    </div>
-                                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                                        <p className="text-xs text-gray-400">Alerta</p>
-                                        <p className="text-sm font-semibold text-gray-700">
-                                            #{alertId || 'N/A'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Probabilidades */}
-                            <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                                <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                    <BarChart3 className="w-4 h-4" />
-                                    Distribución de probabilidades
-                                </h4>
-                                <div className="space-y-2">
-                                    {Object.entries(analysisResult.model2.probabilities).map(([category, prob]) =>
-                                        renderProbabilityBar(category, prob as number)
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Recomendaciones */}
-                            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4">
-                                <div className="flex items-start gap-3">
-                                    <span className="text-2xl">💡</span>
-                                    <div>
-                                        <h5 className="font-semibold text-amber-800 text-sm">Recomendación</h5>
-                                        <p className="text-sm text-amber-700 mt-1">
-                                            {analysisResult.model2.category.toLowerCase().includes('plástico') &&
-                                                'El material identificado es plástico. Se recomienda separar para reciclaje en plantas especializadas.'}
-                                            {analysisResult.model2.category.toLowerCase().includes('vidrio') &&
-                                                'El material identificado es vidrio. Se recomienda llevar a centros de reciclaje de vidrio.'}
-                                            {analysisResult.model2.category.toLowerCase().includes('papel') &&
-                                                'El material identificado es papel/cartón. Se recomienda separar para reciclaje de papel y cartón.'}
-                                            {analysisResult.model2.category.toLowerCase().includes('metal') &&
-                                                'El material identificado es metal. Se recomienda reciclar en chatarrerías autorizadas.'}
-                                            {analysisResult.model2.category.toLowerCase().includes('orgánico') &&
-                                                'El material identificado es orgánico. Se recomienda compostaje o disposición adecuada.'}
-                                            {!analysisResult.model2.category.toLowerCase().includes('plástico') &&
-                                                !analysisResult.model2.category.toLowerCase().includes('vidrio') &&
-                                                !analysisResult.model2.category.toLowerCase().includes('papel') &&
-                                                !analysisResult.model2.category.toLowerCase().includes('metal') &&
-                                                !analysisResult.model2.category.toLowerCase().includes('orgánico') &&
-                                                'Se recomienda disponer según normativa local vigente.'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {analysisResult && renderAnalysisResult()}
 
                     {/* Información adicional */}
                     {analysisResult && (
                         <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                                <span className="flex items-center gap-1">
-                                    <span>🧠</span> IA con ResNet-50
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <span>📊</span> Precisión {analysisResult.model2?.modelInfo?.accuracy || 94.7}%
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <span>♻️</span> Promueve reciclaje
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <span>📋</span> Exporta en 4 formatos
-                                </span>
+                            <p className="text-xs text-gray-500">
+                                📋 Los modelos de IA analizan la imagen en tiempo real utilizando redes neuronales
+                                entrenadas para identificar diferentes tipos de residuos.
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-400">
+                                <span>🕒 Análisis instantáneo</span>
+                                <span>🧠 IA entrenada con miles de imágenes</span>
+                                <span>♻️ Promueve el reciclaje</span>
+                                <span>📊 Exporta resultados en múltiples formatos</span>
                             </div>
                         </div>
                     )}
