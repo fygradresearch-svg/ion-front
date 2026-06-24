@@ -3,7 +3,6 @@ import csv
 import time
 import json
 
-BASE_URL = "https://pifa.oefa.gob.pe/arcgis/rest/services/CiudadanoAmb/alertarrss_WebVisor/MapServer/0/query"
 
 # Mapeo de estados según investigación
 ESTADO_MAP = {
