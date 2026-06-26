@@ -89,10 +89,10 @@ export default function Sidebar({
                             </div>
                             <div>
                                 <h1 className="text-xs sm:text-sm font-black text-slate-900 leading-none">
-                                    Vigilancia Ambiental
+                                    EcoWatch Dash
                                 </h1>
                                 <span className="text-[8px] sm:text-[10px] text-slate-400 font-medium">
-                    Sistema de Monitoreo
+                    Reporte residuos OEFA
                   </span>
                             </div>
                         </div>
