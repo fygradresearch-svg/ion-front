@@ -15,3 +15,12 @@ export interface RankingItem {
   lat: number;
   lng: number;
 }
+
+export interface WastePoint {
+  id: number;
+  lat: number;
+  lng: number;
+  image_url: string;
+  prediction: string;
+  confidence: number;
+}

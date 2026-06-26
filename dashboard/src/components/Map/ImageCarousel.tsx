@@ -10,7 +10,13 @@ interface AttachmentInfo {
   name: string;
 }
 
-export default function ImageCarousel({ objectId }: { objectId: number }) {
+export default function ImageCarousel({
+  objectId,
+  onImageUrlChange,
+}: {
+  objectId: number;
+  onImageUrlChange?: (url: string | null) => void;
+}) {
   const [attachments, setAttachments] = useState<AttachmentInfo[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -28,17 +34,21 @@ export default function ImageCarousel({ objectId }: { objectId: number }) {
         const response = await fetch(url);
         if (!response.ok) throw new Error("Network response was not ok");
         const data = await response.json();
-        
+
         if (isMounted) {
           if (data.attachmentInfos && data.attachmentInfos.length > 0) {
             setAttachments(data.attachmentInfos);
           } else {
             setAttachments([]);
+            onImageUrlChange?.(null);
           }
         }
       } catch (err) {
         console.error("Error fetching attachments for " + objectId, err);
-        if (isMounted) setError(true);
+        if (isMounted) {
+          setError(true);
+          onImageUrlChange?.(null);
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -46,7 +56,14 @@ export default function ImageCarousel({ objectId }: { objectId: number }) {
 
     fetchAttachments();
     return () => { isMounted = false; };
-  }, [objectId]);
+  }, [objectId, onImageUrlChange]);
+
+  useEffect(() => {
+    if (attachments.length > 0) {
+      const url = BASE_URL + "/" + objectId + "/attachments/" + attachments[currentIndex].id;
+      onImageUrlChange?.(url);
+    }
+  }, [currentIndex, attachments, objectId, onImageUrlChange]);
 
   if (loading) {
     return (

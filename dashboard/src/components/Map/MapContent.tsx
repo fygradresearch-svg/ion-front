@@ -3,11 +3,13 @@
 import { MapContainer, TileLayer, Popup, CircleMarker, GeoJSON, useMap, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
-import { Alerta } from '@/types';
-import ImageCarousel from './ImageCarousel';
+import { Alerta, WastePoint } from '@/types';
 import HeatmapLayer from './HeatmapLayer';
 import { getContaminationDataFromSentinel2, convertToHeatmapFormat, ContaminationPoint } from '@/services/sentinelService';
-import ImageAnalysisModal from "@/components/ImageAnalysisModal";
+import AlertPopup from './AlertPopup';
+import MapClickHandler from './MapClickHandler';
+import CreatePointModal from './CreatePointModal';
+import WastePointPopup from './WastePointPopup';
 
 const juninMarketsHeatmapData: [number, number, number][] = [
   // 1. Distrito de Huancayo (Cercado)
@@ -54,14 +56,31 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
   const [peruGeoJSON, setPeruGeoJSON] = useState<any>(null);
   const [contaminationHeatmap, setContaminationHeatmap] = useState<[number, number, number][]>([]);
   const [contaminationPoints, setContaminationPoints] = useState<ContaminationPoint[]>([]);
-  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
-  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+  const [wastePoints, setWastePoints] = useState<WastePoint[]>([]);
+  const [clickCoords, setClickCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  const HUANCAYO_CENTER: [number, number] = [-12.07, -75.205];
+
+  const fetchWastePoints = async () => {
+    try {
+      const res = await fetch('/api/points');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.points) setWastePoints(data.points);
+    } catch (err) {
+      console.error('Error cargando puntos IA:', err);
+    }
+  };
 
   useEffect(() => {
     fetch('/peru-boundary.json')
         .then(res => res.json())
         .then(json => setPeruGeoJSON(json))
         .catch(err => console.error("GeoJSON Error:", err));
+  }, []);
+
+  useEffect(() => {
+    fetchWastePoints();
   }, []);
 
   // Cargar datos de contaminación de Sentinel-2
@@ -74,6 +93,7 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
   }, []);
 
   const filteredData = data.filter((d: Alerta) => {
+    if (d.NOMBPROV !== 'HUANCAYO') return false;
     if (selectedDept && d.NOMBDEP !== selectedDept) return false;
     if (selectedProv && d.NOMBPROV !== selectedProv) return false;
     return true;
@@ -84,26 +104,39 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
     return '#dc2626';
   };
 
-  // Función para abrir el modal de análisis
-  const openAnalysisModal = (objectId: number) => {
-    // @ts-ignore
-    setSelectedAlertId(objectId);
-    setShowAnalysisModal(true);
+  const handleMapDoubleClick = (lat: number, lng: number) => {
+    setClickCoords({ lat, lng });
+  };
+
+  const handlePointCreated = async () => {
+    await fetchWastePoints();
   };
 
   return (
-      <>
+      <div className="relative h-full w-full">
+        {clickCoords && (
+            <CreatePointModal
+                lat={clickCoords.lat}
+                lng={clickCoords.lng}
+                onClose={() => setClickCoords(null)}
+                onSuccess={handlePointCreated}
+            />
+        )}
+
         <MapContainer
-            center={[-9.19, -75.01]}
-            zoom={6}
+            center={HUANCAYO_CENTER}
+            zoom={13}
+            doubleClickZoom={false}
             style={{ height: '100%', width: '100%', background: '#f8fafc' }}
             zoomControl={false}
         >
           <ZoomControl position="bottomright" />
           <MapController
               center={targetCoords || (userPosition ? [userPosition.lat, userPosition.lng] : null)}
-              zoom={targetCoords ? 14 : (userPosition ? 16 : 6)}
+              zoom={targetCoords ? 14 : (userPosition ? 16 : 13)}
           />
+
+          <MapClickHandler onMapDoubleClick={handleMapDoubleClick} enabled={!clickCoords} />
 
           <TileLayer
               url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
@@ -115,6 +148,32 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
                 <Popup>Estás aquí</Popup>
               </CircleMarker>
           )}
+
+          {clickCoords && (
+              <CircleMarker
+                  center={[clickCoords.lat, clickCoords.lng]}
+                  pathOptions={{ color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 0.9, weight: 2 }}
+                  radius={8}
+              />
+          )}
+
+          {wastePoints.map((point) => (
+              <CircleMarker
+                  key={`waste-${point.id}`}
+                  center={[point.lat, point.lng]}
+                  pathOptions={{
+                    color: '#7c3aed',
+                    fillColor: '#7c3aed',
+                    fillOpacity: 0.85,
+                    weight: 2,
+                  }}
+                  radius={7}
+              >
+                <Popup minWidth={240}>
+                  <WastePointPopup point={point} />
+                </Popup>
+              </CircleMarker>
+          ))}
 
           {peruGeoJSON && (
               <GeoJSON
@@ -209,45 +268,7 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
           {filteredData.map((alerta: Alerta) => {
             const popupContent = (
                 <Popup minWidth={250}>
-                  <div style={{ fontFamily: 'sans-serif', color: '#1e293b' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '10px', fontWeight: 'bold' }}>{alerta.ESTADO_DESC}</span>
-                      <span style={{ fontSize: '10px', color: '#94a3b8' }}>#{alerta.OBJECTID}</span>
-                    </div>
-
-                    <div style={{ backgroundColor: '#f1f5f9', padding: '8px', borderRadius: '4px', marginBottom: '8px' }}>
-                      <p style={{ fontSize: '11px', margin: 0 }}><strong>{alerta.NOMBDIST}</strong></p>
-                      <p style={{ fontSize: '10px', margin: 0, color: '#64748b' }}>{alerta.NOMBPROV}, {alerta.NOMBDEP}</p>
-                    </div>
-
-                    <ImageCarousel objectId={alerta.OBJECTID} />
-
-                    {/* Botón de análisis de IA */}
-                    <button
-                        onClick={() => openAnalysisModal(alerta.OBJECTID)}
-                        className="w-full mt-2 bg-gradient-to-r from-emerald-500 to-blue-500 text-white py-2 rounded-lg text-xs font-bold hover:shadow-lg transition-all"
-                    >
-                      🔬 Analizar evidencia con IA
-                    </button>
-
-                    <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px solid #e2e8f0', marginBottom: '12px' }}>
-                      <a
-                          href={"https://pifa.oefa.gob.pe/PortalReporta/Home/BuzonCiudadano/ConsultarAlerta?codAlerta=" + alerta.OBJECTID}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: '11px', color: '#059669', textDecoration: 'none', fontWeight: 'bold' }}
-                      >
-                        Ver Ficha Oficial ↗
-                      </a>
-                    </div>
-
-                    <div style={{ fontSize: '9px', backgroundColor: '#fef3c7', padding: '6px', borderRadius: '3px', borderLeft: '3px solid #d97706' }}>
-                      <p style={{ margin: '3px 0 2px 0', fontWeight: 'bold', color: '#92400e' }}>📋 MARCO LEGAL</p>
-                      <p style={{ margin: '2px 0', lineHeight: '1.3', color: '#78350f' }}>DL Nº1278: Ley de Gestión Integral de Residuos Sólidos</p>
-                      <p style={{ margin: '2px 0', lineHeight: '1.3', color: '#78350f' }}>Modificado por DL N°1501</p>
-                      <p style={{ margin: '2px 0', lineHeight: '1.3', color: '#78350f' }}>Reglamento: DS Nº014-2017-MINAM</p>
-                    </div>
-                  </div>
+                  <AlertPopup alerta={alerta} />
                 </Popup>
             );
 
@@ -270,15 +291,15 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
 
         </MapContainer>
 
-        {/* Modal de análisis de imágenes */}
-        <ImageAnalysisModal
-            isOpen={showAnalysisModal}
-            onClose={() => {
-              setShowAnalysisModal(false);
-              setSelectedAlertId(null);
-            }}
-            alertId={selectedAlertId || undefined}
-        />
-      </>
+        {!clickCoords && (
+            <div className="absolute bottom-4 sm:bottom-6 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-[1000] pointer-events-none">
+                <div className="bg-white/90 backdrop-blur-md border border-violet-200 px-3 sm:px-4 py-2 rounded-full shadow-lg text-center">
+                    <p className="text-[10px] sm:text-xs text-violet-700 font-medium">
+                        📍 Doble clic / doble toque en el mapa para registrar un punto
+                    </p>
+                </div>
+            </div>
+        )}
+      </div>
   );
 }

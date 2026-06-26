@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -9,15 +8,16 @@ import AlertToast from '@/components/UI/AlertToast';
 import InfoModal from '@/components/UI/InfoModal';
 import ClassificationDashboard from '@/components/Dashboard/ClassificationDashboard';
 import { Alerta, RankingItem } from '@/types';
+import { useWastePoints } from '@/hooks/useWastePoints';
 import { PanelLeftOpen, PanelLeftClose, Menu, X } from 'lucide-react';
 import { alertsData } from "@/data";
 
 export default function Dashboard() {
     const [data, setData] = useState<Alerta[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedDept, setSelectedDept] = useState<string | null>(null);
-    const [selectedProv, setSelectedProv] = useState<string | null>(null);
-    const [targetCoords, setTargetCoords] = useState<[number, number] | null>(null);
+    const [selectedDept, setSelectedDept] = useState<string | null>('JUNIN');
+    const [selectedProv, setSelectedProv] = useState<string | null>('HUANCAYO');
+    const [targetCoords, setTargetCoords] = useState<[number, number] | null>([-12.07, -75.205]);
     const [showHeatmap, setShowHeatmap] = useState(false);
     const [showContaminationLayer, setShowContaminationLayer] = useState(true);
     const [gpsActive, setGpsActive] = useState(false);
@@ -26,7 +26,6 @@ export default function Dashboard() {
     const [notificationSuccess, setNotificationSuccess] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // Estados para el dashboard de clasificación
     const [showClassification, setShowClassification] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState<{
         district: string;
@@ -37,7 +36,6 @@ export default function Dashboard() {
         rankingPosition?: number;
     } | null>(null);
 
-    // Estado para forzar reinicio del dashboard
     const [dashboardKey, setDashboardKey] = useState(0);
 
     const ESTADO_MAP: { [key: number]: string } = {
@@ -60,6 +58,7 @@ export default function Dashboard() {
     }, [alertInfo.show]);
 
     const { position: userPosition } = useGeolocation(gpsActive, data, onProximityAlert);
+    const { wastePoints, refresh: refreshWastePoints } = useWastePoints();
 
     useEffect(() => {
         const loadLocalData = async () => {
@@ -72,7 +71,7 @@ export default function Dashboard() {
                     NOMBDIST: item.NOMBDIST,
                     LATITUD: parseFloat(item.LATITUD),
                     LONGITUD: parseFloat(item.LONGITUD),
-                })).filter((item: Alerta) => item.LATITUD && item.LONGITUD);
+                })).filter((item: Alerta) => item.LATITUD && item.LONGITUD && item.NOMBPROV === 'HUANCAYO');
 
                 setData(validData);
                 setLoading(false);
@@ -117,8 +116,7 @@ export default function Dashboard() {
             }, {})
     ).sort((a: any, b: any) => b.count - a.count).slice(0, 10) as any[];
 
-    // Manejador para seleccionar un item del ranking
-    const handleSelectRanking = (item: any, index: number) => {
+    const handleSelectRanking = (item: RankingItem, index: number) => {
         setTargetCoords([item.lat, item.lng]);
         setSelectedDept(item.dept);
         setSelectedLocation({
@@ -127,31 +125,12 @@ export default function Dashboard() {
             lat: item.lat,
             lng: item.lng,
             count: item.count,
-            rankingPosition: index + 1
+            rankingPosition: index + 1,
         });
+        setDashboardKey(prev => prev + 1);
         setShowClassification(true);
         setSidebarOpen(false);
-    };
-
-    const handleClassifyLocation = (item: any, index: number) => {
-        // Primero cerrar el dashboard
-        setShowClassification(false);
-
-        // Actualizar la ubicación seleccionada con la posición
-        setSelectedLocation({
-            district: item.district,
-            dept: item.dept,
-            lat: item.lat,
-            lng: item.lng,
-            count: item.count,
-            rankingPosition: index + 1
-        });
-
-        // Forzar reinicio con un delay
-        setTimeout(() => {
-            setDashboardKey(prev => prev + 1);
-            setShowClassification(true);
-        }, 50);
+        refreshWastePoints();
     };
 
     const handleSelectDept = (dept: string | null) => {
@@ -173,12 +152,11 @@ export default function Dashboard() {
     }
 
     return (
-        <main className="flex h-screen w-screen bg-slate-50 text-slate-900 font-sans">
-            {/* Botón hamburguesa móvil */}
+        <main className="flex h-screen w-screen bg-slate-50 text-slate-900 font-sans overflow-hidden">
+            {/* ✅ Botón hamburguesa móvil - mejor posicionado y z-index */}
             <button
-                className="md:hidden fixed top-3 left-3 z-[99999] bg-white border border-slate-200 rounded-xl p-2.5 shadow-lg active:scale-95 transition-transform"
+                className="md:hidden fixed top-3 left-3 z-[2001] bg-white/90 backdrop-blur-sm border border-slate-200 rounded-xl p-2.5 shadow-lg active:scale-95 transition-transform touch-manipulation"
                 onClick={toggleSidebar}
-                onTouchEnd={(e) => { e.preventDefault(); toggleSidebar(); }}
                 aria-label={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
             >
                 {sidebarOpen
@@ -217,7 +195,6 @@ export default function Dashboard() {
                 onSelectProv={setSelectedProv}
                 ranking={ranking}
                 onSelectRanking={handleSelectRanking}
-                onClassifyLocation={handleClassifyLocation}
                 gpsActive={gpsActive}
                 onToggleGps={setGpsActive}
                 showHeatmap={showHeatmap}
@@ -229,17 +206,17 @@ export default function Dashboard() {
                 onToggleContaminationLayer={setShowContaminationLayer}
                 isOpen={sidebarOpen}
                 onToggle={toggleSidebar}
+                alerts={data}
+                wastePoints={wastePoints}
             />
 
-            {/* Botón toggle desktop */}
+            {/* ✅ Botón toggle desktop - solo visible en desktop */}
             <button
                 onClick={toggleSidebar}
-                className={[
-                    'hidden md:flex fixed top-4 z-[9999] items-center justify-center',
-                    'bg-white/90 backdrop-blur-md border border-slate-200 rounded-xl p-2.5 shadow-lg',
-                    'hover:bg-white transition-all duration-300 ease-in-out active:scale-95',
-                    sidebarOpen ? 'left-4 md:left-80' : 'left-4',
-                ].join(' ')}
+                className="hidden md:flex fixed top-4 z-[9999] items-center justify-center bg-white/90 backdrop-blur-md border border-slate-200 rounded-xl p-2.5 shadow-lg hover:bg-white transition-all duration-300 active:scale-95"
+                style={{
+                    left: sidebarOpen ? 'calc(20rem + 1rem)' : '1rem',
+                }}
                 aria-label={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
             >
                 {sidebarOpen
@@ -258,30 +235,33 @@ export default function Dashboard() {
                     showContaminationLayer={showContaminationLayer}
                 />
 
-                <div className="absolute top-4 left-16 z-10 pointer-events-none">
-                    <div className="bg-white/90 backdrop-blur-md border border-slate-200 px-4 py-2.5 rounded-2xl shadow-xl">
-                        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                {/* ✅ Localización actual - reposicionada para no solapar con botón hamburguesa */}
+                <div className="absolute top-3 sm:top-4 right-3 sm:right-4 z-10 pointer-events-none">
+                    <div className="bg-white/90 backdrop-blur-md border border-slate-200 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl shadow-xl inline-block max-w-[calc(100vw-6rem)] sm:max-w-full">
+                        <h2 className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
                             Localización Actual
                         </h2>
-                        <p className="text-slate-900 font-black text-base leading-tight">
-                            {selectedProv ? `${selectedProv}, ${selectedDept}` : (selectedDept || 'Todo el Perú')}
+                        <p className="text-slate-900 font-black text-xs sm:text-sm md:text-base leading-tight truncate">
+                            Huancayo, Junín
                         </p>
                     </div>
                 </div>
             </section>
 
-            {/* Dashboard de Clasificación con key para forzar reinicio */}
+            {/* Dashboard de Clasificación */}
             {selectedLocation && showClassification && (
+
                 <ClassificationDashboard
-                    key={`dashboard-${dashboardKey}-${selectedLocation.rankingPosition || 1}`}
+                    key={`dashboard-${dashboardKey}-${selectedLocation.district}`}
                     isOpen={showClassification}
                     onClose={() => {
                         setShowClassification(false);
                         setDashboardKey(prev => prev + 1);
                     }}
-                    location={selectedLocation.district}
-                    dept={selectedLocation.dept}
                     district={selectedLocation.district}
+                    dept={selectedLocation.dept}
+                    alerts={data}
+                    wastePoints={wastePoints}
                     alertCount={selectedLocation.count || 0}
                     rankingPosition={selectedLocation.rankingPosition || 1}
                 />

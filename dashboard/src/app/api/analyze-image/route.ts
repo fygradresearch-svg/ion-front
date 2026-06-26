@@ -1,35 +1,38 @@
-// src/app/api/analyze-image/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
-// const FLASK_API_URL = process.env.FLASK_API_URL || 'http://localhost:5000';
-
-const FLASK_API_URL = process.env.FLASK_API_URL || 'https://ion-backend-production.up.railway.app';
+const WASTE_API_URL = process.env.WASTE_API_URL || 'https://ion-back-production-495d.up.railway.app';
 
 export async function POST(request: NextRequest) {
     try {
-        const formData = await request.formData();
+        const { url } = await request.json();
 
-        // Reenviar la petición al servidor Flask
-        const response = await fetch(`${FLASK_API_URL}/analyze`, {
+        if (!url || typeof url !== 'string') {
+            return NextResponse.json(
+                { error: 'Se requiere la URL de la imagen' },
+                { status: 400 }
+            );
+        }
+
+        const response = await fetch(`${WASTE_API_URL}/analyze-url`, {
             method: 'POST',
-            body: formData,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(url),
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            const errorData = await response.json();
             return NextResponse.json(
-                { error: errorData.error || 'Error en el análisis' },
+                { error: data.error || 'Error en el análisis' },
                 { status: response.status }
             );
         }
 
-        const data = await response.json();
         return NextResponse.json(data);
-
     } catch (error) {
         console.error('Error en análisis:', error);
         return NextResponse.json(
-            { error: error instanceof Error ? error.message : 'Error desconocido' },
+            { error: error instanceof Error ? error.message : 'No se pudo conectar con el servidor de IA' },
             { status: 500 }
         );
     }
