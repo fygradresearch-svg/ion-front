@@ -5,11 +5,36 @@ import { Loader2 } from 'lucide-react';
 import { Alerta } from '@/types';
 import ImageCarousel from './ImageCarousel';
 
-const CATEGORY_INFO: Record<string, { label: string; color: string; bg: string; emoji: string }> = {
-    general: { label: 'General', color: '#475569', bg: '#f1f5f9', emoji: '🗑️' },
-    hazardous: { label: 'Peligroso', color: '#dc2626', bg: '#fef2f2', emoji: '☢️' },
-    organic: { label: 'Orgánico', color: '#16a34a', bg: '#f0fdf4', emoji: '🌿' },
-    recyclable: { label: 'Reciclable', color: '#2563eb', bg: '#eff6ff', emoji: '♻️' },
+// Configuración de categorías con colores específicos para cada tacho
+const CATEGORY_INFO: Record<string, { label: string; color: string; bg: string; emoji: string; wasteTypes: string[] }> = {
+    recyclable: {
+        label: 'Residuos Aprovechables (Reciclables)',
+        color: '#16a34a', // Verde
+        bg: '#dcfce7',
+        emoji: '♻️',
+        wasteTypes: ['Papel', 'Cartón', 'Plástico', 'Vidrio', 'Metales', 'Textiles']
+    },
+    general: {
+        label: 'Residuos No Aprovechables (Generales)',
+        color: '#475569', // Negro/Gris oscuro
+        bg: '#f1f5f9',
+        emoji: '🗑️',
+        wasteTypes: ['Papel higiénico', 'Pañales', 'Toallas sanitarias', 'Colillas', 'Residuos sanitarios']
+    },
+    organic: {
+        label: 'Residuos Orgánicos',
+        color: '#8B4513', // Marrón
+        bg: '#fef3c7',
+        emoji: '🌿',
+        wasteTypes: ['Restos de comida', 'Cáscaras de frutas', 'Verduras', 'Residuos de jardín', 'Hojas']
+    },
+    hazardous: {
+        label: 'Residuos Peligrosos',
+        color: '#dc2626', // Rojo
+        bg: '#fee2e2',
+        emoji: '☢️',
+        wasteTypes: ['Baterías', 'Pilas', 'Aceites usados', 'Pinturas', 'Químicos', 'Residuos hospitalarios']
+    },
 };
 
 interface Prediction {
@@ -27,43 +52,11 @@ export default function AlertPopup({ alerta }: AlertPopupProps) {
     const [result, setResult] = useState<Prediction | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    // const handleAnalyze = async () => {
-    //     if (!imageUrl) {
-    //         setError('No hay imagen disponible para analizar');
-    //         return;
-    //     }
-    //
-    //     setLoading(true);
-    //     setError(null);
-    //     setResult(null);
-    //
-    //     try {
-    //         const response = await fetch('/api/analyze-image', {
-    //             method: 'POST',
-    //             headers: { 'Content-Type': 'application/json' },
-    //             body: JSON.stringify({ url: imageUrl }),
-    //         });
-    //
-    //         const data = await response.json();
-    //
-    //         if (!response.ok || data.error) {
-    //             throw new Error(data.error || 'Error en el análisis');
-    //         }
-    //
-    //         setResult(data.prediction);
-    //     } catch (err) {
-    //         setError(err instanceof Error ? err.message : 'Error al analizar la imagen');
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
-
     const handleAnalyze = async () => {
         if (!imageUrl) {
             setError('No hay imagen disponible para analizar');
             return;
         }
-
         setLoading(true);
         setError(null);
         setResult(null);
@@ -77,7 +70,7 @@ export default function AlertPopup({ alerta }: AlertPopupProps) {
             // 2. Crear FormData con la imagen y coordenadas dummy
             const formData = new FormData();
             formData.append('image', blob, 'imagen.jpg');
-            formData.append('lat', '0');  // o coordenadas reales si las tienes
+            formData.append('lat', '0');
             formData.append('lng', '0');
 
             // 3. Enviar a tu backend
@@ -99,12 +92,14 @@ export default function AlertPopup({ alerta }: AlertPopupProps) {
             setLoading(false);
         }
     };
+
     const categoryKey = result?.class?.toLowerCase() ?? '';
     const category = CATEGORY_INFO[categoryKey] ?? {
         label: result?.class ?? 'Desconocido',
         color: '#64748b',
         bg: '#f8fafc',
         emoji: '❓',
+        wasteTypes: ['Sin clasificar']
     };
 
     const confidencePercent = result
@@ -147,24 +142,62 @@ export default function AlertPopup({ alerta }: AlertPopupProps) {
             )}
 
             {result && (
-                <div style={{ marginTop: '8px', padding: '10px', backgroundColor: category.bg, borderRadius: '8px', border: `1px solid ${category.color}33` }}>
-                    <p style={{ fontSize: '9px', fontWeight: 'bold', color: '#64748b', margin: '0 0 6px', textTransform: 'uppercase' }}>
-                        Resultado YOLOv8
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '20px' }}>{category.emoji}</span>
+                <div style={{ marginTop: '8px', padding: '12px', backgroundColor: category.bg, borderRadius: '8px', border: `2px solid ${category.color}` }}>
+                    {/* Título del resultado */}
+                    <div style={{
+                        backgroundColor: category.color,
+                        color: 'white',
+                        padding: '6px 10px',
+                        borderRadius: '4px',
+                        marginBottom: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
+                        <span style={{ fontSize: '18px' }}>{category.emoji}</span>
+                        <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{category.label}</span>
+                    </div>
+
+                    {/* Información del tacho */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '8px',
+                        backgroundColor: 'white',
+                        borderRadius: '6px',
+                        marginBottom: '8px'
+                    }}>
+                        <div style={{
+                            width: '40px',
+                            height: '50px',
+                            backgroundColor: category.color,
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontSize: '24px',
+                            fontWeight: 'bold',
+                            flexShrink: 0
+                        }}>
+                            {category.emoji}
+                        </div>
                         <div>
-                            <p style={{ fontSize: '13px', fontWeight: 'bold', color: category.color, margin: 0 }}>
-                                {category.label}
-                            </p>
-                            <p style={{ fontSize: '10px', color: '#64748b', margin: 0 }}>
-                                Clase: <strong>{result.class}</strong>
+                            <p style={{ fontSize: '10px', color: '#64748b', margin: 0 }}>Tacho de color:</p>
+                            <p style={{ fontSize: '12px', fontWeight: 'bold', color: category.color, margin: 0 }}>
+                                {category.label.split('(')[0].trim()}
                             </p>
                         </div>
                     </div>
+
+                    {/* Tipos de residuos */}
+
+
+                    {/* Confianza */}
                     <div style={{ backgroundColor: '#fff', borderRadius: '4px', padding: '6px 8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '4px' }}>
-                            <span style={{ color: '#64748b' }}>Confianza</span>
+                            <span style={{ color: '#64748b' }}>Confianza del análisis</span>
                             <span style={{ fontWeight: 'bold', color: category.color }}>{confidencePercent.toFixed(1)}%</span>
                         </div>
                         <div style={{ width: '100%', backgroundColor: '#e2e8f0', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
@@ -178,6 +211,18 @@ export default function AlertPopup({ alerta }: AlertPopupProps) {
                                 }}
                             />
                         </div>
+                    </div>
+
+                    {/* Leyenda de colores */}
+                    <div style={{
+                        marginTop: '10px',
+                        padding: '8px',
+                        backgroundColor: 'white',
+                        borderRadius: '6px',
+                        border: '1px solid #e2e8f0'
+                    }}>
+                        Punto registrado (IA)
+
                     </div>
                 </div>
             )}
