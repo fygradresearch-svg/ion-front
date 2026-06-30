@@ -44,7 +44,7 @@ async function analyzeImageUrl(url: string) {
     const formData = new FormData();
     formData.append('image', blob, 'imagen.jpg');
 
-    const res = await fetch(`https://ion-back-production-495d.up.railway.app/analyze-image`, {
+    const res = await fetch(`/api/analyze-image`, {
         method: 'POST',
         body: formData,
     });
