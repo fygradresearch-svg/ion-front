@@ -33,27 +33,41 @@ async function fetchAlertImageUrl(objectId: number): Promise<string | null> {
     }
     return null;
 }
-
 async function analyzeImageUrl(url: string) {
-    // Descargar imagen desde el navegador (evita 403 en Railway)
-    const imgResponse = await fetch(url);
-    if (!imgResponse.ok) throw new Error('No se pudo descargar la imagen');
-    const blob = await imgResponse.blob();
+    try {
+        // Descargar imagen desde el navegador (evita 403 en Railway)
+        const imgResponse = await fetch(url);
+        if (!imgResponse.ok) throw new Error('No se pudo descargar la imagen');
+        const blob = await imgResponse.blob();
 
-    // Enviar como archivo al backend
-    const formData = new FormData();
-    formData.append('image', blob, 'imagen.jpg');
+        // Enviar como archivo al backend
+        const formData = new FormData();
+        formData.append('image', blob, 'imagen.jpg');
+        formData.append('lat', '0');
+        formData.append('lng', '0');
 
-    const res = await fetch(`/api/analyze-image`, {
-        method: 'POST',
-        body: formData,
-    });
+        const response = await fetch(`https://ion-back-production-495d.up.railway.app/create-point`, {
+            method: 'POST',
+            body: formData,
+        });
+        // const response = await fetch(`http://127.0.0.1:5000/create-point`, {
+        //     method: 'POST',
+        //     body: formData,
+        // });
 
-    const data = await res.json();
-    if (!res.ok || data.error) throw new Error(data.error || 'Error en análisis');
-    return data.prediction as { class: string; confidence: number };
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+        return data.prediction as { class: string; confidence: number };
+    } catch (error) {
+        console.error('❌ Error en análisis de imagen:', error);
+        throw error;
+    }
 }
-
 export async function analyzeDistrictPoints(
     district: string,
     alerts: Alerta[],

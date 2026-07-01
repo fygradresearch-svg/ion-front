@@ -11,6 +11,7 @@ import { Alerta, RankingItem } from '@/types';
 import { useWastePoints } from '@/hooks/useWastePoints';
 import { PanelLeftOpen, PanelLeftClose, Menu, X } from 'lucide-react';
 import { alertsData } from "@/data";
+import DashboardButton from "@/components/Dashboard/DashboardButton";
 
 export default function Dashboard() {
     const [data, setData] = useState<Alerta[]>([]);
@@ -184,7 +185,12 @@ export default function Dashboard() {
                     <span className="font-bold">Notificación enviada con éxito a la municipalidad</span>
                 </div>
             )}
-
+            <DashboardButton
+                alerts={data}          // el array de Alerta que ya usas en MapContent
+                wastePoints={wastePoints} // si lo tienes en el layout; si no, pásalo desde donde haces fetchWastePoints
+                stats={stats}           // el mismo objeto {total, atendidos, noAtendidos} que le pasas a Sidebar
+                openOnMount={false}      // ábrelo automáticamente al cargar la app; quítalo si prefieres que sea manual
+            />
             <Sidebar
                 stats={stats}
                 departments={departments}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const WASTE_API_URL = process.env.WASTE_API_URL || 'https://ion-back-production-495d.up.railway.app';
+// const WASTE_API_URL = process.env.WASTE_API_URL || 'http://127.0.0.1:5000';
 
 export async function POST(request: NextRequest) {
     try {

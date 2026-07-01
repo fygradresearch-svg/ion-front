@@ -10,6 +10,7 @@ import AlertPopup from './AlertPopup';
 import MapClickHandler from './MapClickHandler';
 import CreatePointModal from './CreatePointModal';
 import WastePointPopup from './WastePointPopup';
+import AnalyzeAllButton, {getAlertaImageUrl} from "@/components/Map/AnalyzeAllButton";
 
 const juninMarketsHeatmapData: [number, number, number][] = [
   // 1. Distrito de Huancayo (Cercado)
@@ -58,6 +59,7 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
   const [contaminationPoints, setContaminationPoints] = useState<ContaminationPoint[]>([]);
   const [wastePoints, setWastePoints] = useState<WastePoint[]>([]);
   const [clickCoords, setClickCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [analysisResults, setAnalysisResults] = useState<any[]>([]); // Estado para resultados
 
   const HUANCAYO_CENTER: [number, number] = [-12.07, -75.205];
 
@@ -71,7 +73,130 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
       console.error('Error cargando puntos IA:', err);
     }
   };
+  // En MapContent.tsx - Versión optimizada
+  const analyzeAllPoints = async () => {
+    try {
+      const allPoints = [...filteredData, ...wastePoints];
 
+      if (allPoints.length === 0) {
+        throw new Error('No hay puntos para analizar');
+      }
+
+      // 🔥 Resolver imageUrl para CADA punto antes de filtrar
+      // wastePoints ya traen imageUrl; las alertas (Alerta[]) necesitan resolverla via ArcGIS
+      const pointsWithResolvedImages = await Promise.all(
+          allPoints.map(async (point) => {
+            // Si ya tiene imageUrl (wastePoints), úsala directo
+            const existingUrl = point.IMAGEN_URL || point.imageUrl;
+            if (existingUrl) {
+              return { ...point, _resolvedImageUrl: existingUrl };
+            }
+            // Si es una Alerta (tiene OBJECTID), resolver contra ArcGIS
+            if (point.OBJECTID) {
+              const resolvedUrl = await getAlertaImageUrl(point.OBJECTID);
+              return { ...point, _resolvedImageUrl: resolvedUrl };
+            }
+            return { ...point, _resolvedImageUrl: null };
+          })
+      );
+
+      const pointsWithImages = pointsWithResolvedImages.filter(
+          (point) => point._resolvedImageUrl
+      );
+
+      if (pointsWithImages.length === 0) {
+        alert('⚠️ No hay puntos con imágenes disponibles para analizar');
+        return [];
+      }
+
+      const BATCH_SIZE = 5;
+      const results = [];
+
+      for (let i = 0; i < pointsWithImages.length; i += BATCH_SIZE) {
+        const batch = pointsWithImages.slice(i, i + BATCH_SIZE);
+
+        const batchResults = await Promise.all(
+            batch.map(async (point) => {
+              try {
+                const imageUrl = point._resolvedImageUrl;
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // más margen
+
+                const imgResponse = await fetch(imageUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (!imgResponse.ok) {
+                  throw new Error('No se pudo descargar la imagen');
+                }
+
+                const blob = await imgResponse.blob();
+                const formData = new FormData();
+                formData.append('image', blob, 'imagen.jpg');
+                formData.append('lat', point.LATITUD || point.lat || '0');
+                formData.append('lng', point.LONGITUD || point.lng || '0');
+
+                // const response = await fetch(`http://127.0.0.1:5000/create-point`, {
+                //   method: 'POST',
+                //   body: formData,
+                // });
+
+                const response = await fetch(`https://ion-back-production-495d.up.railway.app/create-point`, {
+                  method: 'POST',
+                  body: formData,
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                  throw new Error(data.error || 'Error en el análisis');
+                }
+
+                return {
+                  id: point.OBJECTID || point.id,
+                  success: true,
+                  prediction: data.prediction,
+                  point,
+                };
+              } catch (error) {
+                return {
+                  id: point.OBJECTID || point.id,
+                  success: false,
+                  error: error instanceof Error ? error.message : 'Error desconocido',
+                  point,
+                };
+              }
+            })
+        );
+
+        results.push(...batchResults);
+        console.log(`Procesado ${Math.min(i + BATCH_SIZE, pointsWithImages.length)}/${pointsWithImages.length} puntos`, batchResults);
+      }
+
+      setAnalysisResults(results);
+
+      const successCount = results.filter((r) => r.success).length;
+      const failCount = results.filter((r) => !r.success).length;
+
+      alert(
+          `📊 Análisis completado:\n` +
+          `✅ ${successCount} puntos analizados correctamente\n` +
+          `❌ ${failCount} puntos con errores\n` +
+          `📸 ${allPoints.length - pointsWithImages.length} puntos sin imagen`
+      );
+
+      return results;
+    } catch (error) {
+      console.error('Error en análisis masivo:', error);
+      throw error;
+    }
+  };
+
+
+  // Función para obtener el conteo total de puntos
+  const getTotalPoints = () => {
+    return filteredData.length + wastePoints.length;
+  };
   useEffect(() => {
     fetch('/peru-boundary.json')
         .then(res => res.json())
@@ -290,7 +415,12 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
           })}
 
         </MapContainer>
-
+        {/*<div className="absolute top-4 right-4 z-[1000]">*/}
+        {/*  <AnalyzeAllButton*/}
+        {/*      onAnalyzeAll={analyzeAllPoints}*/}
+        {/*      totalPoints={getTotalPoints()}*/}
+        {/*  />*/}
+        {/*</div>*/}
         {!clickCoords && (
             <div className="absolute bottom-4 sm:bottom-6 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-[1000] pointer-events-none">
                 <div className="bg-white/90 backdrop-blur-md border border-violet-200 px-3 sm:px-4 py-2 rounded-full shadow-lg text-center">
