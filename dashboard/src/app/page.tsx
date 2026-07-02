@@ -9,9 +9,9 @@ import InfoModal from '@/components/UI/InfoModal';
 import ClassificationDashboard from '@/components/Dashboard/ClassificationDashboard';
 import { Alerta, RankingItem } from '@/types';
 import { useWastePoints } from '@/hooks/useWastePoints';
-import { PanelLeftOpen, PanelLeftClose, Menu, X } from 'lucide-react';
+import { PanelLeftOpen, PanelLeftClose, Menu, X, LayoutDashboard } from 'lucide-react';
 import { alertsData } from "@/data";
-import DashboardButton from "@/components/Dashboard/DashboardButton";
+import DashboardPanel from "@/components/Dashboard/DashboardPanel";
 
 export default function Dashboard() {
     const [data, setData] = useState<Alerta[]>([]);
@@ -26,6 +26,9 @@ export default function Dashboard() {
     const [showInfoModal, setShowInfoModal] = useState(false);
     const [notificationSuccess, setNotificationSuccess] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // ✅ El panel de dashboard ahora vive al costado del mapa, no como modal
+    const [dashboardOpen, setDashboardOpen] = useState(true);
 
     const [showClassification, setShowClassification] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState<{
@@ -140,6 +143,7 @@ export default function Dashboard() {
     };
 
     const toggleSidebar = () => setSidebarOpen(v => !v);
+    const toggleDashboard = () => setDashboardOpen(v => !v);
 
     if (loading) {
         return (
@@ -154,7 +158,6 @@ export default function Dashboard() {
 
     return (
         <main className="flex h-screen w-screen bg-slate-50 text-slate-900 font-sans overflow-hidden">
-            {/* ✅ Botón hamburguesa móvil - mejor posicionado y z-index */}
             <button
                 className="md:hidden fixed top-3 left-3 z-[2001] bg-white/90 backdrop-blur-sm border border-slate-200 rounded-xl p-2.5 shadow-lg active:scale-95 transition-transform touch-manipulation"
                 onClick={toggleSidebar}
@@ -163,6 +166,15 @@ export default function Dashboard() {
                 {sidebarOpen
                     ? <X className="w-5 h-5 text-slate-700" />
                     : <Menu className="w-5 h-5 text-slate-700" />}
+            </button>
+
+            {/* ✅ Botón para mostrar/ocultar el dashboard en mobile (en desktop siempre visible) */}
+            <button
+                className="md:hidden fixed top-3 right-3 z-[2001] bg-white/90 backdrop-blur-sm border border-slate-200 rounded-xl p-2.5 shadow-lg active:scale-95 transition-transform touch-manipulation"
+                onClick={toggleDashboard}
+                aria-label={dashboardOpen ? 'Cerrar dashboard' : 'Abrir dashboard'}
+            >
+                <LayoutDashboard className="w-5 h-5 text-slate-700" />
             </button>
 
             <AlertToast
@@ -185,12 +197,7 @@ export default function Dashboard() {
                     <span className="font-bold">Notificación enviada con éxito a la municipalidad</span>
                 </div>
             )}
-            <DashboardButton
-                alerts={data}          // el array de Alerta que ya usas en MapContent
-                wastePoints={wastePoints} // si lo tienes en el layout; si no, pásalo desde donde haces fetchWastePoints
-                stats={stats}           // el mismo objeto {total, atendidos, noAtendidos} que le pasas a Sidebar
-                openOnMount={false}      // ábrelo automáticamente al cargar la app; quítalo si prefieres que sea manual
-            />
+
             <Sidebar
                 stats={stats}
                 departments={departments}
@@ -216,13 +223,10 @@ export default function Dashboard() {
                 wastePoints={wastePoints}
             />
 
-            {/* ✅ Botón toggle desktop - solo visible en desktop */}
             <button
                 onClick={toggleSidebar}
                 className="hidden md:flex fixed top-4 z-[9999] items-center justify-center bg-white/90 backdrop-blur-md border border-slate-200 rounded-xl p-2.5 shadow-lg hover:bg-white transition-all duration-300 active:scale-95"
-                style={{
-                    left: sidebarOpen ? 'calc(20rem + 1rem)' : '1rem',
-                }}
+                style={{ left: sidebarOpen ? 'calc(20rem + 1rem)' : '1rem' }}
                 aria-label={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
             >
                 {sidebarOpen
@@ -230,6 +234,7 @@ export default function Dashboard() {
                     : <PanelLeftOpen className="w-5 h-5 text-slate-700" />}
             </button>
 
+            {/* ✅ Mapa */}
             <section className="flex-1 relative min-w-0 overflow-hidden">
                 <Map
                     data={data}
@@ -241,7 +246,6 @@ export default function Dashboard() {
                     showContaminationLayer={showContaminationLayer}
                 />
 
-                {/* ✅ Localización actual - reposicionada para no solapar con botón hamburguesa */}
                 <div className="absolute top-3 sm:top-4 right-3 sm:right-4 z-10 pointer-events-none">
                     <div className="bg-white/90 backdrop-blur-md border border-slate-200 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl shadow-xl inline-block max-w-[calc(100vw-6rem)] sm:max-w-full">
                         <h2 className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
@@ -254,9 +258,16 @@ export default function Dashboard() {
                 </div>
             </section>
 
-            {/* Dashboard de Clasificación */}
-            {selectedLocation && showClassification && (
+            {/* ✅ Dashboard fijo al costado del mapa (drawer en mobile) */}
+            <DashboardPanel
+                isOpen={dashboardOpen}
+                onClose={() => setDashboardOpen(false)}
+                alerts={data}
+                wastePoints={wastePoints}
+                stats={stats}
+            />
 
+            {selectedLocation && showClassification && (
                 <ClassificationDashboard
                     key={`dashboard-${dashboardKey}-${selectedLocation.district}`}
                     isOpen={showClassification}

@@ -233,7 +233,7 @@ export default function AlertPopup({ alerta }: AlertPopupProps) {
 
             <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px solid #e2e8f0', marginBottom: '12px' }}>
                 <a
-                    href={'https://pifa.oefa.gob.pe/PortalReporta/Home/BuzonCiudadano/ConsultarAlerta?codAlerta=' + alerta.OBJECTID}
+                    href={'https://www.gob.pe/institucion/oefa/institucional'}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ fontSize: '11px', color: '#059669', textDecoration: 'none', fontWeight: 'bold' }}
