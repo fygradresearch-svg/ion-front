@@ -1,6 +1,7 @@
 export interface Alerta {
   OBJECTID: number;
   ESTADO_DESC: string;
+  ESTADO_COD?: string;
   NOMBDEP: string;
   NOMBPROV: string;
   NOMBDIST: string;

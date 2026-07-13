@@ -99,7 +99,7 @@ export default function Sidebar({
                                     EcoWatch Dash
                                 </h1>
                                 <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium">
-                                    Reporte residuos OEFA
+                                    Puntos detectados por IA
                                 </span>
                             </div>
                         </div>

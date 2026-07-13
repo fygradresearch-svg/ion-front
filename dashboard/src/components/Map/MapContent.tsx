@@ -391,6 +391,7 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
           })}
 
           {filteredData.map((alerta: Alerta) => {
+
             const popupContent = (
                 <Popup minWidth={250}>
                   <AlertPopup alerta={alerta} />

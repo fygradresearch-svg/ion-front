@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Map from '@/components/Map/Map';
 import Sidebar from '@/components/Dashboard/Sidebar';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -9,7 +9,7 @@ import InfoModal from '@/components/UI/InfoModal';
 import ClassificationDashboard from '@/components/Dashboard/ClassificationDashboard';
 import { Alerta, RankingItem } from '@/types';
 import { useWastePoints } from '@/hooks/useWastePoints';
-import { PanelLeftOpen, PanelLeftClose, Menu, X, LayoutDashboard } from 'lucide-react';
+import { PanelLeftOpen, PanelLeftClose, PanelRightOpen, PanelRightClose, Menu, X, LayoutDashboard } from 'lucide-react';
 import { alertsData } from "@/data";
 import DashboardPanel from "@/components/Dashboard/DashboardPanel";
 
@@ -64,6 +64,38 @@ export default function Dashboard() {
     const { position: userPosition } = useGeolocation(gpsActive, data, onProximityAlert);
     const { wastePoints, refresh: refreshWastePoints } = useWastePoints();
 
+    // ✅ Mapeamos los wastePoints a un formato compatible con Alerta para poder usarlos en los dashboards,
+    // heredando la información geográfica y de estado de la alerta OEFA más cercana
+    const pointsData = useMemo(() => {
+        return wastePoints
+            .filter(p => p.prediction !== 'no_detection')
+            .map(p => {
+                let nearestAlert: Alerta | null = null;
+                let minDist = Infinity;
+                for (const a of data) {
+                    if (typeof a.LATITUD !== 'number' || typeof a.LONGITUD !== 'number') continue;
+                    const dist = Math.hypot(p.lat - a.LATITUD, p.lng - a.LONGITUD);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearestAlert = a;
+                    }
+                }
+                return {
+                    OBJECTID: p.id,
+                    ESTADO_DESC: nearestAlert ? nearestAlert.ESTADO_DESC : 'No atendido',
+                    ESTADO_COD: nearestAlert ? nearestAlert.ESTADO_COD : '3',
+                    NOMBDEP: nearestAlert ? nearestAlert.NOMBDEP : 'JUNIN',
+                    NOMBPROV: nearestAlert ? nearestAlert.NOMBPROV : 'HUANCAYO',
+                    NOMBDIST: nearestAlert ? nearestAlert.NOMBDIST : 'HUANCAYO',
+                    LATITUD: p.lat,
+                    LONGITUD: p.lng,
+                    prediction: p.prediction,
+                    confidence: p.confidence,
+                    image_url: p.image_url,
+                } as unknown as Alerta;
+            });
+    }, [wastePoints, data]);
+
     useEffect(() => {
         const loadLocalData = async () => {
             try {
@@ -88,37 +120,45 @@ export default function Dashboard() {
         loadLocalData();
     }, []);
 
-    const departments = Array.from(new Set(data.map(d => d.NOMBDEP))).filter(Boolean);
-    const provinces = selectedDept
-        ? Array.from(new Set(data.filter(d => d.NOMBDEP === selectedDept).map(d => d.NOMBPROV))).filter(Boolean)
-        : [];
+    const departments = useMemo(() => {
+        return Array.from(new Set(pointsData.map(d => d.NOMBDEP))).filter(Boolean);
+    }, [pointsData]);
 
-    const stats = {
-        total: data.length,
-        atendidos: data.filter(d => d.ESTADO_DESC?.includes('Atendido')).length,
-        noAtendidos: data.filter(d => d.ESTADO_DESC?.includes('No atendido')).length,
-    };
+    const provinces = useMemo(() => {
+        if (!selectedDept) return [];
+        return Array.from(new Set(pointsData.filter(d => d.NOMBDEP === selectedDept).map(d => d.NOMBPROV))).filter(Boolean);
+    }, [pointsData, selectedDept]);
 
-    const ranking = Object.values(
-        data
-            .filter(d => d.ESTADO_DESC?.includes('No atendido'))
-            .filter(d => !selectedDept || d.NOMBDEP === selectedDept)
-            .filter(d => !selectedProv || d.NOMBPROV === selectedProv)
-            .reduce((acc: any, curr) => {
-                const key = `${curr.NOMBDEP}-${curr.NOMBPROV}-${curr.NOMBDIST}`;
-                if (!acc[key]) {
-                    acc[key] = {
-                        district: curr.NOMBDIST,
-                        dept: curr.NOMBDEP,
-                        count: 0,
-                        lat: curr.LATITUD,
-                        lng: curr.LONGITUD
-                    };
-                }
-                acc[key].count += 1;
-                return acc;
-            }, {})
-    ).sort((a: any, b: any) => b.count - a.count).slice(0, 10) as any[];
+    const stats = useMemo(() => {
+        return {
+            total: pointsData.length,
+            atendidos: pointsData.filter(d => d.ESTADO_DESC?.includes('Atendido')).length,
+            noAtendidos: pointsData.filter(d => d.ESTADO_DESC?.includes('No atendido')).length,
+        };
+    }, [pointsData]);
+
+    const ranking = useMemo(() => {
+        return Object.values(
+            pointsData
+                .filter(d => d.ESTADO_DESC?.includes('No atendido'))
+                .filter(d => !selectedDept || d.NOMBDEP === selectedDept)
+                .filter(d => !selectedProv || d.NOMBPROV === selectedProv)
+                .reduce((acc: any, curr) => {
+                    const key = `${curr.NOMBDEP}-${curr.NOMBPROV}-${curr.NOMBDIST}`;
+                    if (!acc[key]) {
+                        acc[key] = {
+                            district: curr.NOMBDIST,
+                            dept: curr.NOMBDEP,
+                            count: 0,
+                            lat: curr.LATITUD,
+                            lng: curr.LONGITUD
+                        };
+                    }
+                    acc[key].count += 1;
+                    return acc;
+                }, {})
+        ).sort((a: any, b: any) => b.count - a.count).slice(0, 10) as any[];
+    }, [pointsData, selectedDept, selectedProv]);
 
     const handleSelectRanking = (item: RankingItem, index: number) => {
         setTargetCoords([item.lat, item.lng]);
@@ -219,7 +259,7 @@ export default function Dashboard() {
                 onToggleContaminationLayer={setShowContaminationLayer}
                 isOpen={sidebarOpen}
                 onToggle={toggleSidebar}
-                alerts={data}
+                alerts={pointsData as any}
                 wastePoints={wastePoints}
             />
 
@@ -246,7 +286,8 @@ export default function Dashboard() {
                     showContaminationLayer={showContaminationLayer}
                 />
 
-                <div className="absolute top-3 sm:top-4 right-3 sm:right-4 z-10 pointer-events-none">
+                {/* Localización Actual ligeramente desplazada a la izquierda para dejar sitio al botón de colapso */}
+                <div className="absolute top-3 sm:top-4 right-14 sm:right-16 z-10 pointer-events-none">
                     <div className="bg-white/90 backdrop-blur-md border border-slate-200 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl shadow-xl inline-block max-w-[calc(100vw-6rem)] sm:max-w-full">
                         <h2 className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
                             Localización Actual
@@ -256,13 +297,24 @@ export default function Dashboard() {
                         </p>
                     </div>
                 </div>
+
+                {/* ✅ Botón de colapso del dashboard derecho para desktop */}
+                <button
+                    onClick={toggleDashboard}
+                    className="hidden md:flex absolute top-4 right-4 z-[9999] items-center justify-center bg-white/90 backdrop-blur-md border border-slate-200 rounded-xl p-2.5 shadow-lg hover:bg-white transition-all duration-300 active:scale-95 pointer-events-auto"
+                    aria-label={dashboardOpen ? 'Cerrar dashboard' : 'Abrir dashboard'}
+                >
+                    {dashboardOpen
+                        ? <PanelRightClose className="w-5 h-5 text-slate-700" />
+                        : <PanelRightOpen className="w-5 h-5 text-slate-700" />}
+                </button>
             </section>
 
             {/* ✅ Dashboard fijo al costado del mapa (drawer en mobile) */}
             <DashboardPanel
                 isOpen={dashboardOpen}
                 onClose={() => setDashboardOpen(false)}
-                alerts={data}
+                alerts={pointsData as any}
                 wastePoints={wastePoints}
                 stats={stats}
             />
@@ -277,7 +329,7 @@ export default function Dashboard() {
                     }}
                     district={selectedLocation.district}
                     dept={selectedLocation.dept}
-                    alerts={data}
+                    alerts={pointsData as any}
                     wastePoints={wastePoints}
                     alertCount={selectedLocation.count || 0}
                     rankingPosition={selectedLocation.rankingPosition || 1}

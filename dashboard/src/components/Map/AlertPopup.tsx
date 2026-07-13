@@ -47,6 +47,7 @@ interface AlertPopupProps {
 }
 
 export default function AlertPopup({ alerta }: AlertPopupProps) {
+    console.log(alerta)
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<Prediction | null>(null);
@@ -60,7 +61,8 @@ export default function AlertPopup({ alerta }: AlertPopupProps) {
         setLoading(true);
         setError(null);
         setResult(null);
-
+        const long = alerta.LONGITUD.toString();
+        const lat = alerta.LATITUD.toString();
         try {
             // 1. Descargar la imagen desde el frontend (navegador)
             const imgResponse = await fetch(imageUrl);
@@ -70,8 +72,8 @@ export default function AlertPopup({ alerta }: AlertPopupProps) {
             // 2. Crear FormData con la imagen y coordenadas dummy
             const formData = new FormData();
             formData.append('image', blob, 'imagen.jpg');
-            formData.append('lat', '0');
-            formData.append('lng', '0');
+            formData.append('lat', lat);
+            formData.append('lng', long);
 
             // 3. Enviar a tu backend
             const response = await fetch(`https://ion-back-production-495d.up.railway.app/create-point`, {

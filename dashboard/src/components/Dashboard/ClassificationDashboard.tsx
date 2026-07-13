@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { X, MapPin, Loader2, BarChart3, AlertTriangle } from 'lucide-react';
 import { Alerta } from '@/types';
 import {
@@ -10,8 +10,6 @@ import {
     toMunicipalCategory,
     getMunicipalCategoryInfo,
 } from '@/lib/municipalWaste';
-import { buildDistrictCentroids } from '@/lib/districtUtils';
-import { analyzeDistrictPoints, AnalyzedPoint } from '@/services/districtAnalysisService';
 import { WastePoint } from '@/types';
 import { formatConfidence } from '@/lib/wasteCategories';
 
@@ -36,52 +34,27 @@ export default function ClassificationDashboard({
     alertCount = 0,
     rankingPosition = 1,
 }: ClassificationDashboardProps) {
-    const [loading, setLoading] = useState(true);
-    const [progress, setProgress] = useState({ current: 0, total: 0, message: '' });
-    const [analyzedPoints, setAnalyzedPoints] = useState<AnalyzedPoint[]>([]);
-    const [stats, setStats] = useState<MunicipalStats | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const analyzedPoints = useMemo(() => {
+        return alerts
+            .filter(a => a.NOMBDIST === district)
+            .map(p => ({
+                source: 'created' as const,
+                id: p.OBJECTID,
+                lat: p.LATITUD,
+                lng: p.LONGITUD,
+                prediction: (p as any).prediction || 'general',
+                confidence: (p as any).confidence || 0,
+                image_url: (p as any).image_url,
+            }));
+    }, [alerts, district]);
 
-    useEffect(() => {
-        if (!isOpen) return;
+    const stats = useMemo(() => {
+        return aggregateMunicipalStats(analyzedPoints.map(r => r.prediction));
+    }, [analyzedPoints]);
 
-        let cancelled = false;
-
-        const runAnalysis = async () => {
-            setLoading(true);
-            setError(null);
-            setAnalyzedPoints([]);
-            setStats(null);
-            setProgress({ current: 0, total: 0, message: 'Iniciando análisis...' });
-
-            try {
-                const centroids = buildDistrictCentroids(alerts);
-                const results = await analyzeDistrictPoints(
-                    district,
-                    alerts,
-                    wastePoints,
-                    centroids,
-                    (p) => {
-                        if (!cancelled) setProgress(p);
-                    }
-                );
-
-                if (cancelled) return;
-
-                setAnalyzedPoints(results);
-                setStats(aggregateMunicipalStats(results.map(r => r.prediction)));
-            } catch (err) {
-                if (!cancelled) {
-                    setError(err instanceof Error ? err.message : 'Error al analizar el distrito');
-                }
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        };
-
-        runAnalysis();
-        return () => { cancelled = true; };
-    }, [isOpen, district, alerts, wastePoints]);
+    const loading = false;
+    const error = null;
+    const progress = { current: 0, total: 0, message: '' };
 
     if (!isOpen) return null;
 
@@ -116,7 +89,7 @@ export default function ClassificationDashboard({
                                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                                 <span className="font-medium truncate">{district}, {dept}</span>
                                 <span className="text-slate-300">·</span>
-                                <span>{alertCount} alertas OEFA</span>
+                                <span>{alertCount} puntos de residuos</span>
                             </div>
                         </div>
                         <button
