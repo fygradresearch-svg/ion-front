@@ -10,9 +10,8 @@ export interface MunicipalCategoryInfo {
     bg: string;
     border: string;
     emoji: string;
-    tachoColor: string; // Color del tacho según la normativaResultado YOLOv8
-
-
+    tachoColor: string; // Color del tacho según la normativa
+    tachoImage: string; // Ruta de la imagen del tacho en public/assets
     wasteTypes: string[]; // Tipos de residuos que van en cada tacho
 }
 
@@ -26,6 +25,7 @@ export const MUNICIPAL_CATEGORIES: MunicipalCategoryInfo[] = [
         border: '#fecaca',
         emoji: '☢️',
         tachoColor: 'Rojo',
+        tachoImage: '/assets/rojo.png',
         wasteTypes: ['Baterías', 'Pilas', 'Aceites usados', 'Pinturas', 'Químicos', 'Residuos hospitalarios']
     },
     {
@@ -37,6 +37,7 @@ export const MUNICIPAL_CATEGORIES: MunicipalCategoryInfo[] = [
         border: '#cbd5e1',
         emoji: '🗑️',
         tachoColor: 'Negro',
+        tachoImage: '/assets/negro.png',
         wasteTypes: ['Papel higiénico', 'Pañales', 'Toallas sanitarias', 'Colillas', 'Residuos sanitarios']
     },
     {
@@ -48,6 +49,7 @@ export const MUNICIPAL_CATEGORIES: MunicipalCategoryInfo[] = [
         border: '#fde68a',
         emoji: '🌿',
         tachoColor: 'Marrón',
+        tachoImage: '/assets/marron.png',
         wasteTypes: ['Restos de comida', 'Cáscaras de frutas', 'Verduras', 'Residuos de jardín', 'Hojas']
     },
     {
@@ -59,6 +61,7 @@ export const MUNICIPAL_CATEGORIES: MunicipalCategoryInfo[] = [
         border: '#bbf7d0',
         emoji: '♻️',
         tachoColor: 'Verde',
+        tachoImage: '/assets/verde.png',
         wasteTypes: ['Papel', 'Cartón', 'Plástico', 'Vidrio', 'Metales', 'Textiles']
     },
 ];

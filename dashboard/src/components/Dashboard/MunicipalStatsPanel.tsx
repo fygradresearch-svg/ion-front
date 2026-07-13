@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import {
     MUNICIPAL_CATEGORIES,
     aggregateMunicipalStats,
@@ -67,10 +68,17 @@ export default function MunicipalStatsPanel({ alerts, wastePoints }: MunicipalSt
                 {MUNICIPAL_CATEGORIES.map(cat => (
                     <div
                         key={cat.key}
-                        className="rounded-lg p-2 border text-center"
+                        className="rounded-lg p-2 border text-center flex flex-col items-center"
                         style={{ backgroundColor: cat.bg, borderColor: cat.border }}
                     >
-                        <p className="text-sm">{cat.emoji}</p>
+                        <div className="relative w-8 h-8">
+                            <Image
+                                src={cat.tachoImage}
+                                alt={`Tacho ${cat.tachoColor}`}
+                                fill
+                                className="object-contain"
+                            />
+                        </div>
                         <p className="text-base font-black leading-none mt-0.5" style={{ color: cat.color }}>
                             {globalStats[cat.key]}
                         </p>
@@ -80,33 +88,6 @@ export default function MunicipalStatsPanel({ alerts, wastePoints }: MunicipalSt
                     </div>
                 ))}
             </div>
-
-            {/*{districtStats.length > 0 && (*/}
-            {/*    <div className="space-y-1.5">*/}
-            {/*        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Por distrito (registrados)</p>*/}
-            {/*        {districtStats.map(([district, stats]) => (*/}
-            {/*            <div key={district} className="bg-white border border-slate-100 rounded-lg px-2.5 py-2">*/}
-            {/*                <div className="flex justify-between items-center mb-1">*/}
-            {/*                    <span className="text-[10px] font-bold text-slate-700 truncate">{district}</span>*/}
-            {/*                    <span className="text-[10px] font-black text-violet-600">{stats.total}</span>*/}
-            {/*                </div>*/}
-            {/*                <div className="flex gap-0.5 h-1.5 rounded-full overflow-hidden bg-slate-100">*/}
-            {/*                    {MUNICIPAL_CATEGORIES.map(cat =>*/}
-            {/*                        stats[cat.key] > 0 ? (*/}
-            {/*                            <div*/}
-            {/*                                key={cat.key}*/}
-            {/*                                style={{*/}
-            {/*                                    width: `${(stats[cat.key] / stats.total) * 100}%`,*/}
-            {/*                                    backgroundColor: cat.color,*/}
-            {/*                                }}*/}
-            {/*                            />*/}
-            {/*                        ) : null*/}
-            {/*                    )}*/}
-            {/*                </div>*/}
-            {/*            </div>*/}
-            {/*        ))}*/}
-            {/*    </div>*/}
-            {/*)}*/}
         </section>
     );
 }

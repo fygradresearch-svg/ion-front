@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Image from 'next/image';
 import { X, MapPin, Loader2, BarChart3, AlertTriangle } from 'lucide-react';
 import { Alerta } from '@/types';
 import {
@@ -25,15 +26,15 @@ interface ClassificationDashboardProps {
 }
 
 export default function ClassificationDashboard({
-    isOpen,
-    onClose,
-    district,
-    dept,
-    alerts,
-    wastePoints,
-    alertCount = 0,
-    rankingPosition = 1,
-}: ClassificationDashboardProps) {
+                                                    isOpen,
+                                                    onClose,
+                                                    district,
+                                                    dept,
+                                                    alerts,
+                                                    wastePoints,
+                                                    alertCount = 0,
+                                                    rankingPosition = 1,
+                                                }: ClassificationDashboardProps) {
     const analyzedPoints = useMemo(() => {
         return alerts
             .filter(a => a.NOMBDIST === district)
@@ -149,11 +150,23 @@ export default function ClassificationDashboard({
                                     {stats.total} <span className="text-base font-bold text-slate-500">puntos analizados</span>
                                 </p>
                                 {dominantCategory && stats[dominantCategory.key] > 0 && (
-                                    <p className="text-xs text-slate-600 mt-2">
-                                        Predominio: <strong style={{ color: dominantCategory.color }}>
-                                            {dominantCategory.emoji} {dominantCategory.label}
-                                        </strong> ({stats[dominantCategory.key]} — {((stats[dominantCategory.key] / stats.total) * 100).toFixed(0)}%)
-                                    </p>
+                                    <div className="flex items-center gap-1.5 mt-2">
+                                        <p className="text-xs text-slate-600">Predominio:</p>
+                                        <div className="relative w-4 h-4 shrink-0">
+                                            <Image
+                                                src={dominantCategory.tachoImage}
+                                                alt={`Tacho ${dominantCategory.tachoColor}`}
+                                                fill
+                                                className="object-contain"
+                                            />
+                                        </div>
+                                        <strong className="text-xs" style={{ color: dominantCategory.color }}>
+                                            {dominantCategory.label}
+                                        </strong>
+                                        <span className="text-xs text-slate-600">
+                                            ({stats[dominantCategory.key]} — {((stats[dominantCategory.key] / stats.total) * 100).toFixed(0)}%)
+                                        </span>
+                                    </div>
                                 )}
                             </div>
 
@@ -174,7 +187,14 @@ export default function ClassificationDashboard({
                                                 style={{ backgroundColor: cat.bg, borderColor: cat.border }}
                                             >
                                                 <div className="flex items-center gap-1.5 mb-1">
-                                                    <span className="text-lg">{cat.emoji}</span>
+                                                    <div className="relative w-5 h-5 shrink-0">
+                                                        <Image
+                                                            src={cat.tachoImage}
+                                                            alt={`Tacho ${cat.tachoColor}`}
+                                                            fill
+                                                            className="object-contain"
+                                                        />
+                                                    </div>
                                                     <p className="text-[10px] font-bold leading-tight" style={{ color: cat.color }}>
                                                         {cat.shortLabel}
                                                     </p>
@@ -219,9 +239,19 @@ export default function ClassificationDashboard({
                                                         <p className="text-[10px] font-bold text-slate-500">
                                                             {point.source === 'created' ? '📍 Registrado' : '🏛️ OEFA'} #{point.id}
                                                         </p>
-                                                        <p className="text-xs font-bold truncate" style={{ color: cat.color }}>
-                                                            {cat.emoji} {cat.shortLabel}
-                                                        </p>
+                                                        <div className="flex items-center gap-1">
+                                                            <div className="relative w-3.5 h-3.5 shrink-0">
+                                                                <Image
+                                                                    src={cat.tachoImage}
+                                                                    alt={`Tacho ${cat.tachoColor}`}
+                                                                    fill
+                                                                    className="object-contain"
+                                                                />
+                                                            </div>
+                                                            <p className="text-xs font-bold truncate" style={{ color: cat.color }}>
+                                                                {cat.shortLabel}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                     <span className="text-[10px] font-bold text-slate-400 shrink-0">
                                                         {conf.toFixed(0)}%
