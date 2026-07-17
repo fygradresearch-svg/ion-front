@@ -162,7 +162,8 @@ export async function exportDashboardToPdf(
         doc.setFontSize(11);
         doc.text('EcoWatch - Detección de Residuos por Inteligencia Artificial', 14, 25);
 
-        // Date and Metadata
+        // Date
+        // and Metadata
         const dateStr = new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' });
         doc.setFontSize(9);
         doc.text(`Generado: ${dateStr}`, pageWidth - 14, 15, { align: 'right' });
