@@ -2,8 +2,8 @@ import { Alerta } from '@/types';
 
 export async function exportDashboardToPdf(
     stats: { total: number; atendidos: number; noAtendidos: number },
-    selectedDept: string | null,
-    selectedProv: string | null,
+    selectedDept: string | null | undefined,
+    selectedProv: string | null | undefined,
     alerts: Alerta[]
 ) {
     // Temporary style element to override oklch/lab colors with standard hex colors for html2canvas compatibility

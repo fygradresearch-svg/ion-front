@@ -9,7 +9,7 @@ ESTADO_MAP = {
     3: "No atendido",
     4: "No atendido",
     5: "Atendido por Municipalidad",
-    6: "Atendido por Municipalidad"
+    6: "Atendido por Municipalidad111111111111111111"
 }
 
 def get_total_count():
@@ -50,7 +50,7 @@ def fetch_data():
             }
             
             try:
-                response = requests.get(BASE_URL, params=params)
+                response = requests.get(BASE_URL, params=params)|
                 if response.status_code != 200:
                     print(f"Error en la petición: {response.status_code}")
                     break

@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { LayoutDashboard } from 'lucide-react';
-import DashboardPanel from './DashboardPanel';
+
 import { Alerta, WastePoint } from '@/types';
+import DashboardPanel from "@/components/Dashboard/DashboardPanel";
 
 interface DashboardButtonProps {
     alerts: Alerta[];

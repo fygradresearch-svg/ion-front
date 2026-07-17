@@ -27,8 +27,8 @@ interface DashboardPanelProps {
         atendidos: number;
         noAtendidos: number;
     };
-    selectedDept: string | null;
-    selectedProv: string | null;
+    selectedDept?: string | null;
+    selectedProv?: string | null;
 }
 
 const TOP_DISTRITOS = 8;
