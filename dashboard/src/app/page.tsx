@@ -129,35 +129,59 @@ export default function Dashboard() {
         return Array.from(new Set(pointsData.filter(d => d.NOMBDEP === selectedDept).map(d => d.NOMBPROV))).filter(Boolean);
     }, [pointsData, selectedDept]);
 
+    const filteredPointsData = useMemo(() => {
+        return pointsData
+            .filter(d => !selectedDept || d.NOMBDEP === selectedDept)
+            .filter(d => !selectedProv || d.NOMBPROV === selectedProv);
+    }, [pointsData, selectedDept, selectedProv]);
+
+    const filteredWastePoints = useMemo(() => {
+        const ids = new Set(filteredPointsData.map(p => p.OBJECTID));
+        return wastePoints.filter(p => ids.has(p.id));
+    }, [wastePoints, filteredPointsData]);
+
     const stats = useMemo(() => {
         return {
-            total: pointsData.length,
-            atendidos: pointsData.filter(d => d.ESTADO_DESC?.includes('Atendido')).length,
-            noAtendidos: pointsData.filter(d => d.ESTADO_DESC?.includes('No atendido')).length,
+            total: filteredPointsData.length,
+            atendidos: filteredPointsData.filter(d => d.ESTADO_DESC?.includes('Atendido')).length,
+            noAtendidos: filteredPointsData.filter(d => d.ESTADO_DESC?.includes('No atendido')).length,
         };
-    }, [pointsData]);
+    }, [filteredPointsData]);
 
     const ranking = useMemo(() => {
-        return Object.values(
-            pointsData
-                .filter(d => d.ESTADO_DESC?.includes('No atendido'))
-                .filter(d => !selectedDept || d.NOMBDEP === selectedDept)
-                .filter(d => !selectedProv || d.NOMBPROV === selectedProv)
-                .reduce((acc: any, curr) => {
-                    const key = `${curr.NOMBDEP}-${curr.NOMBPROV}-${curr.NOMBDIST}`;
-                    if (!acc[key]) {
-                        acc[key] = {
-                            district: curr.NOMBDIST,
-                            dept: curr.NOMBDEP,
-                            count: 0,
-                            lat: curr.LATITUD,
-                            lng: curr.LONGITUD
-                        };
-                    }
-                    acc[key].count += 1;
-                    return acc;
-                }, {})
-        ).sort((a: any, b: any) => b.count - a.count).slice(0, 10) as any[];
+        const filtered = pointsData
+            .filter(d => !selectedDept || d.NOMBDEP === selectedDept)
+            .filter(d => !selectedProv || d.NOMBPROV === selectedProv);
+
+        const distritosMap = filtered.reduce((acc: Record<string, any>, curr) => {
+            const key = `${curr.NOMBDEP}-${curr.NOMBPROV}-${curr.NOMBDIST}`;
+            if (!acc[key]) {
+                acc[key] = {
+                    district: curr.NOMBDIST,
+                    dept: curr.NOMBDEP,
+                    total: 0,
+                    atendidos: 0,
+                    noAtendidos: 0,
+                    lat: curr.LATITUD,
+                    lng: curr.LONGITUD,
+                };
+            }
+            
+            acc[key].total += 1;
+            if (curr.ESTADO_DESC?.includes('Atendido')) {
+                acc[key].atendidos += 1;
+            } else {
+                acc[key].noAtendidos += 1;
+            }
+            
+            // compatibility with older count (unattended)
+            acc[key].count = acc[key].noAtendidos;
+            
+            return acc;
+        }, {});
+
+        return Object.values(distritosMap)
+            .sort((a: any, b: any) => b.total - a.total) as any[];
     }, [pointsData, selectedDept, selectedProv]);
 
     const handleSelectRanking = (item: RankingItem, index: number) => {
@@ -259,8 +283,8 @@ export default function Dashboard() {
                 onToggleContaminationLayer={setShowContaminationLayer}
                 isOpen={sidebarOpen}
                 onToggle={toggleSidebar}
-                alerts={pointsData as any}
-                wastePoints={wastePoints}
+                alerts={filteredPointsData as any}
+                wastePoints={filteredWastePoints}
             />
 
             <button
@@ -314,9 +338,11 @@ export default function Dashboard() {
             <DashboardPanel
                 isOpen={dashboardOpen}
                 onClose={() => setDashboardOpen(false)}
-                alerts={pointsData as any}
-                wastePoints={wastePoints}
+                alerts={filteredPointsData as any}
+                wastePoints={filteredWastePoints}
                 stats={stats}
+                selectedDept={selectedDept}
+                selectedProv={selectedProv}
             />
 
             {selectedLocation && showClassification && (

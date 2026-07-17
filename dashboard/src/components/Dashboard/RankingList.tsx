@@ -11,10 +11,10 @@ interface RankingListProps {
 export default function RankingList({ items, onSelect }: RankingListProps) {
     if (items.length === 0) {
         return (
-            <section className="mt-6">
+            <section className="mt-6" id="pdf-chart-distritos-list">
                 <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
-                    Puntos Críticos (Top 10)
+                    Puntos Críticos por Distrito
                 </h2>
                 <p className="text-xs text-slate-400 text-center py-4">Sin datos disponibles</p>
             </section>
@@ -22,10 +22,10 @@ export default function RankingList({ items, onSelect }: RankingListProps) {
     }
 
     return (
-        <section className="mt-6">
+        <section className="mt-6" id="pdf-chart-distritos-list">
             <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                 <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
-                Puntos Críticos (Top 10)
+                Puntos Críticos por Distrito
             </h2>
             <p className="text-[9px] text-slate-400 mb-3">
                 Toca un distrito para analizar todos sus puntos con IA
@@ -46,11 +46,16 @@ export default function RankingList({ items, onSelect }: RankingListProps) {
                                     {item.district}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="text-[10px] font-black text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
-                                    {item.count}
+                            <div className="flex items-center gap-1 ml-auto text-[9px] font-extrabold shrink-0">
+                                <span className="text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200" title="Total">
+                                    T:{item.total}
                                 </span>
-                                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-violet-500" />
+                                <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100" title="Atendidos">
+                                    A:{item.atendidos}
+                                </span>
+                                <span className="text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100" title="Pendientes">
+                                    P:{item.noAtendidos}
+                                </span>
                             </div>
                         </div>
 
@@ -62,11 +67,26 @@ export default function RankingList({ items, onSelect }: RankingListProps) {
                             </span>
                         </div>
 
-                        <div className="mt-2 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-violet-500 transition-all duration-700"
-                                style={{ width: `${(item.count / items[0].count) * 100}%` }}
-                            />
+                        {/* Dual colored bar (Emerald for Atendidos, Red for Pendientes) */}
+                        <div className="mt-2.5 h-2 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                            {item.total > 0 ? (
+                                <>
+                                    {item.atendidos > 0 && (
+                                        <div
+                                            className="h-full bg-emerald-500 transition-all duration-500"
+                                            style={{ width: `${(item.atendidos / item.total) * 100}%` }}
+                                        />
+                                    )}
+                                    {item.noAtendidos > 0 && (
+                                        <div
+                                            className="h-full bg-red-500 transition-all duration-500"
+                                            style={{ width: `${(item.noAtendidos / item.total) * 100}%` }}
+                                        />
+                                    )}
+                                </>
+                            ) : (
+                                <div className="h-full w-full bg-slate-200" />
+                            )}
                         </div>
                     </button>
                 ))}

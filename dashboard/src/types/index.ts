@@ -13,6 +13,9 @@ export interface RankingItem {
   district: string;
   dept: string;
   count: number;
+  total: number;
+  atendidos: number;
+  noAtendidos: number;
   lat: number;
   lng: number;
 }

@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
     PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { X, FileSpreadsheet, LayoutDashboard, Recycle, MapPin } from 'lucide-react';
+import { X, FileSpreadsheet, LayoutDashboard, Recycle, MapPin, CheckCircle, FileText } from 'lucide-react';
 import { Alerta, WastePoint } from '@/types';
 import {
     buildDistritoResumen,
@@ -15,6 +15,7 @@ import {
     PREDICTION_META,
     exportDashboardToExcel,
 } from './DashboardExcel';
+import { exportDashboardToPdf } from './DashboardPdf';
 
 interface DashboardPanelProps {
     isOpen: boolean;
@@ -26,11 +27,23 @@ interface DashboardPanelProps {
         atendidos: number;
         noAtendidos: number;
     };
+    selectedDept: string | null;
+    selectedProv: string | null;
 }
 
 const TOP_DISTRITOS = 8;
 
-export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, stats }: DashboardPanelProps) {
+export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, stats, selectedDept, selectedProv }: DashboardPanelProps) {
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+    const handleDownloadPdf = async () => {
+        setIsGeneratingPdf(true);
+        try {
+            await exportDashboardToPdf(stats, selectedDept, selectedProv, alerts);
+        } finally {
+            setIsGeneratingPdf(false);
+        }
+    };
     const resumen = useMemo(() => buildDistritoResumen(alerts), [alerts]);
     const topDistritos = useMemo(
         () => resumen.slice(0, TOP_DISTRITOS).map((r) => ({
@@ -106,8 +119,8 @@ export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, s
                     </div>
 
                     {/* Donut: clasificación de residuos por IA */}
-                    <section>
-                        <h3 className=" text-xl font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <section id="pdf-chart-classification" className="bg-white p-2 rounded-xl">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                             <Recycle className="w-3.5 h-3.5" />
                             Clasificación municipal de residuos
                         </h3>
@@ -159,7 +172,7 @@ export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, s
 
 
                     {/* Barra apilada: categorías IA por distrito */}
-                    <section>
+                    <section id="pdf-chart-distritos" className="bg-white p-2 rounded-xl">
                         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                             <Recycle className="w-3.5 h-3.5" />
                             Categorías IA por distrito
@@ -210,21 +223,88 @@ export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, s
                         </p>
                     </section>
 
-                    {/* Exportar Excel */}
+                    {/* Donut: Estado de Atención por Municipalidad */}
+                    {/*<section id="pdf-chart-atencion" className="bg-white p-2 rounded-xl">*/}
+                    {/*    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">*/}
+                    {/*        <CheckCircle className="w-3.5 h-3.5" />*/}
+                    {/*        Estado de Atención por Municipalidad*/}
+                    {/*    </h3>*/}
+                    {/*    {stats.total === 0 ? (*/}
+                    {/*        <EmptyState text="Todavía no hay alertas registradas." />*/}
+                    {/*    ) : (*/}
+                    {/*        <div className="flex items-center gap-4">*/}
+                    {/*            <div className="h-40 w-40 shrink-0">*/}
+                    {/*                <ResponsiveContainer width="100%" height="100%">*/}
+                    {/*                    <PieChart>*/}
+                    {/*                        <Pie*/}
+                    {/*                            data={[*/}
+                    {/*                                { name: 'Atendidos', value: stats.atendidos, color: '#10b981' },*/}
+                    {/*                                { name: 'Pendientes', value: stats.noAtendidos, color: '#f59e0b' }*/}
+                    {/*                            ]}*/}
+                    {/*                            dataKey="value"*/}
+                    {/*                            nameKey="name"*/}
+                    {/*                            innerRadius={38}*/}
+                    {/*                            outerRadius={64}*/}
+                    {/*                            paddingAngle={2}*/}
+                    {/*                        >*/}
+                    {/*                            <Cell fill="#10b981" stroke="none" />*/}
+                    {/*                            <Cell fill="#f59e0b" stroke="none" />*/}
+                    {/*                        </Pie>*/}
+                    {/*                        <Tooltip*/}
+                    {/*                            contentStyle={{ fontSize: 13, borderRadius: 8, border: '1px solid #e2e8f0' }}*/}
+                    {/*                        />*/}
+                    {/*                    </PieChart>*/}
+                    {/*                </ResponsiveContainer>*/}
+                    {/*            </div>*/}
+                    {/*            <ul className="flex-1 space-y-2">*/}
+                    {/*                <li className="flex items-center justify-between text-xs">*/}
+                    {/*                    <span className="flex items-center gap-2 font-medium text-slate-600">*/}
+                    {/*                        <span className="w-2.5 h-2.5 rounded-sm inline-block shrink-0 bg-emerald-500" />*/}
+                    {/*                        Atendidos*/}
+                    {/*                    </span>*/}
+                    {/*                    <span className="font-bold text-slate-800 tabular-nums">*/}
+                    {/*                        {stats.atendidos} ({stats.total ? Math.round((stats.atendidos / stats.total) * 100) : 0}%)*/}
+                    {/*                    </span>*/}
+                    {/*                </li>*/}
+                    {/*                <li className="flex items-center justify-between text-xs">*/}
+                    {/*                    <span className="flex items-center gap-2 font-medium text-slate-600">*/}
+                    {/*                        <span className="w-2.5 h-2.5 rounded-sm inline-block shrink-0 bg-amber-500" />*/}
+                    {/*                        Pendientes*/}
+                    {/*                    </span>*/}
+                    {/*                    <span className="font-bold text-slate-800 tabular-nums">*/}
+                    {/*                        {stats.noAtendidos} ({stats.total ? Math.round((stats.noAtendidos / stats.total) * 100) : 0}%)*/}
+                    {/*                    </span>*/}
+                    {/*                </li>*/}
+                    {/*            </ul>*/}
+                    {/*        </div>*/}
+                    {/*    )}*/}
+                    {/*</section>*/}
+
+                    {/* Exportar Reportes */}
                     <section className="flex flex-col gap-3 bg-slate-50 border border-slate-100 rounded-xl p-4">
                         <div>
-                            <p className="text-xs sm:text-sm font-bold text-slate-700">Reporte Excel completo</p>
+                            <p className="text-xs sm:text-sm font-bold text-slate-700">Exportar Reportes</p>
                             <p className="text-[10px] sm:text-[11px] text-slate-400">
-                                Incluye resumen por distrito, una hoja por región y los puntos detectados por IA.
+                                Descarga los datos y gráficos detallados del estado ambiental.
                             </p>
                         </div>
-                        <button
-                            onClick={() => exportDashboardToExcel(alerts, wastePoints)}
-                            className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 transition-colors text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm shadow-emerald-200"
-                        >
-                            <FileSpreadsheet className="w-4 h-4" />
-                            Descargar Excel
-                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => exportDashboardToExcel(alerts, wastePoints)}
+                                className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 transition-colors text-white text-xs sm:text-sm font-bold px-3 py-2.5 rounded-xl shadow-sm cursor-pointer"
+                            >
+                                <FileSpreadsheet className="w-4 h-4" />
+                                Descargar Excel
+                            </button>
+                            <button
+                                onClick={handleDownloadPdf}
+                                disabled={isGeneratingPdf}
+                                className="flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 transition-colors text-white text-xs sm:text-sm font-bold px-3 py-2.5 rounded-xl shadow-sm cursor-pointer"
+                            >
+                                <FileText className="w-4 h-4" />
+                                {isGeneratingPdf ? 'Generando...' : 'Descargar PDF'}
+                            </button>
+                        </div>
                     </section>
                 </div>
             </div>

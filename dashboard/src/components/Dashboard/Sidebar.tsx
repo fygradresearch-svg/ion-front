@@ -113,21 +113,6 @@ export default function Sidebar({
                         </button>
                     </div>
 
-                    {/* Stats: 3 columnas */}
-                    <div className="grid grid-cols-3 gap-2 mb-5">
-                        <div className="bg-slate-50 rounded-xl p-2 sm:p-3 text-center border border-slate-100">
-                            <p className="text-base sm:text-lg font-black text-slate-800">{stats.total}</p>
-                            <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-wider">Total</p>
-                        </div>
-                        <div className="bg-emerald-50 rounded-xl p-2 sm:p-3 text-center border border-emerald-100">
-                            <p className="text-base sm:text-lg font-black text-emerald-600">{stats.atendidos}</p>
-                            <p className="text-[8px] sm:text-[9px] font-bold text-emerald-500 uppercase tracking-wider">Atendidos</p>
-                        </div>
-                        <div className="bg-red-50 rounded-xl p-2 sm:p-3 text-center border border-red-100">
-                            <p className="text-base sm:text-lg font-black text-red-600">{stats.noAtendidos}</p>
-                            <p className="text-[8px] sm:text-[9px] font-bold text-red-500 uppercase tracking-wider">Pendientes</p>
-                        </div>
-                    </div>
 
                     <MunicipalStatsPanel alerts={alerts} wastePoints={wastePoints} />
 
@@ -216,6 +201,28 @@ export default function Sidebar({
                             </div>
                         )}
                     </div>
+
+                    {/* Puntos Críticos Stats */}
+                    <section className="mb-5 border-t border-slate-100 pt-4">
+                        <h2 className="text-[9px] sm:text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                            Puntos Críticos
+                        </h2>
+                        <div className="grid grid-cols-3 gap-2">
+                            <div className="bg-slate-50 rounded-xl p-2 sm:p-3 text-center border border-slate-100">
+                                <p className="text-base sm:text-lg font-black text-slate-800">{stats.total}</p>
+                                <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-wider">Total</p>
+                            </div>
+                            <div className="bg-emerald-50 rounded-xl p-2 sm:p-3 text-center border border-emerald-100">
+                                <p className="text-base sm:text-lg font-black text-emerald-600">{stats.atendidos}</p>
+                                <p className="text-[8px] sm:text-[9px] font-bold text-emerald-500 uppercase tracking-wider">Atendidos</p>
+                            </div>
+                            <div className="bg-red-50 rounded-xl p-2 sm:p-3 text-center border border-red-100">
+                                <p className="text-base sm:text-lg font-black text-red-600">{stats.noAtendidos}</p>
+                                <p className="text-[8px] sm:text-[9px] font-bold text-red-500 uppercase tracking-wider">Pendientes</p>
+                            </div>
+                        </div>
+                    </section>
 
                     {/* Ranking */}
                     <RankingList
