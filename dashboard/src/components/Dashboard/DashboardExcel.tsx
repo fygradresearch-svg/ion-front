@@ -78,10 +78,10 @@ export const PREDICTION_META: Record<
     string,
     { label: string; color: string; textColor: string }
 > = {
-    hazardous: { label: 'Residuos peligrosos', color: '#dc2626', textColor: '#dc2626' }, // rojo
-    general: { label: 'No aprovechables', color: '#1e293b', textColor: '#1e293b' }, // negro/slate
-    organic: { label: 'Residuos orgánicos', color: '#92400e', textColor: '#92400e' }, // marrón
-    recyclable: { label: 'Aprovechables', color: '#16a34a', textColor: '#16a34a' }, // verde
+    hazardous: { label: 'Peligroso', color: '#dc2626', textColor: '#dc2626' }, // rojo
+    general: { label: 'No reciclable', color: '#1e293b', textColor: '#1e293b' }, // negro/slate
+    organic: { label: 'Orgánico', color: '#92400e', textColor: '#92400e' }, // marrón
+    recyclable: { label: 'Reciclable', color: '#16a34a', textColor: '#16a34a' }, // verde
 };
 
 const EXCLUDED_PREDICTIONS = new Set(['no_detection']);
