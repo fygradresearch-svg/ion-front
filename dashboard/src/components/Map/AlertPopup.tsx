@@ -76,7 +76,7 @@ export default function AlertPopup({ alerta }: AlertPopupProps) {
             formData.append('lng', long);
 
             // 3. Enviar a tu backend
-            const response = await fetch(`https://ion-back-production-495d.up.railway.app/create-point`, {
+            const response = await fetch(`https://app-ion-v2-production.up.railway.app/create-point`, {
                 method: 'POST',
                 body: formData,
             });

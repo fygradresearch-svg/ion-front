@@ -141,7 +141,7 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
                 //   body: formData,
                 // });
 
-                const response = await fetch(`https://ion-back-production-495d.up.railway.app/create-point`, {
+                const response = await fetch(`https://app-ion-v2-production.up.railway.app/create-point`, {
                   method: 'POST',
                   body: formData,
                 });
