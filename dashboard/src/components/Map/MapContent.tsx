@@ -229,6 +229,33 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
     return '#dc2626';
   };
 
+  const getNearestAlertForWastePoint = (point: WastePoint) => {
+    let nearestAlert: Alerta | null = null;
+    let minDist = Infinity;
+
+    for (const alerta of data) {
+      if (typeof alerta.LATITUD !== 'number' || typeof alerta.LONGITUD !== 'number') continue;
+      const dist = Math.hypot(point.lat - alerta.LATITUD, point.lng - alerta.LONGITUD);
+      if (dist < minDist) {
+        minDist = dist;
+        nearestAlert = alerta;
+      }
+    }
+
+    return nearestAlert;
+  };
+
+  const getWastePointStatusColor = (point: WastePoint) => {
+    const nearestAlert = getNearestAlertForWastePoint(point);
+    return getStatusColor(nearestAlert?.ESTADO_DESC || 'No atendido');
+  };
+
+  const createPointStyle = (fillColor: string, fillOpacity = 1) => ({
+    stroke: false,
+    fillColor,
+    fillOpacity,
+  });
+
   const handleMapDoubleClick = (lat: number, lng: number) => {
     setClickCoords({ lat, lng });
   };
@@ -269,34 +296,33 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
           />
 
           {userPosition && (
-              <CircleMarker center={[userPosition.lat, userPosition.lng]} pathOptions={{ color: '#3b82f6' }} radius={8}>
+              <CircleMarker
+                  center={[userPosition.lat, userPosition.lng]}
+                  pathOptions={createPointStyle('#3b82f6', 1)}
+                  radius={8}
+              >
                 <Popup>Estás aquí</Popup>
               </CircleMarker>
           )}
 
-          {clickCoords && (
-              <CircleMarker
-                  center={[clickCoords.lat, clickCoords.lng]}
-                  pathOptions={{ color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 0.9, weight: 2 }}
-                  radius={8}
-              />
-          )}
+          {/*{clickCoords && (*/}
+          {/*    <CircleMarker*/}
+          {/*        center={[clickCoords.lat, clickCoords.lng]}*/}
+          {/*        pathOptions={{ color: '#7c3aed', fillColor: '#7c3aed', fillOpacity: 0.9, weight: 2 }}*/}
+          {/*        radius={8}*/}
+          {/*    />*/}
+          {/*)}*/}
 
           {wastePoints.map((point) => (
               <CircleMarker
                   key={`waste-${point.id}`}
                   center={[point.lat, point.lng]}
-                  pathOptions={{
-                    color: '#7c3aed',
-                    fillColor: '#7c3aed',
-                    fillOpacity: 0.85,
-                    weight: 2,
-                  }}
+                  pathOptions={createPointStyle(getWastePointStatusColor(point), 0.9)}
                   radius={7}
               >
-                <Popup minWidth={240}>
-                  <WastePointPopup point={point} />
-                </Popup>
+                  <Popup minWidth={250}>
+                    <WastePointPopup point={point} />
+                  </Popup>
               </CircleMarker>
           ))}
 
@@ -377,12 +403,7 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
                 <CircleMarker
                     key={`contamination-${idx}`}
                     center={[point.lat, point.lng]}
-                    pathOptions={{
-                      color: point.intensity > 1.8 ? '#dc2626' : '#f97316',
-                      fillColor: point.intensity > 1.8 ? '#dc2626' : '#f97316',
-                      fillOpacity: 0.8,
-                      weight: 2,
-                    }}
+                    pathOptions={createPointStyle(point.intensity > 1.8 ? '#dc2626' : '#f97316', 0.8)}
                     radius={point.intensity > 1.8 ? 7 : 5}
                 >
                   {popupContent}
@@ -402,12 +423,7 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
                 <CircleMarker
                     key={alerta.OBJECTID}
                     center={[alerta.LATITUD, alerta.LONGITUD]}
-                    pathOptions={{
-                      color: getStatusColor(alerta.ESTADO_DESC),
-                      fillColor: getStatusColor(alerta.ESTADO_DESC),
-                      fillOpacity: 0.7,
-                      weight: 1
-                    }}
+                    pathOptions={createPointStyle(getStatusColor(alerta.ESTADO_DESC), 0.7)}
                     radius={5}
                 >
                   {popupContent}
