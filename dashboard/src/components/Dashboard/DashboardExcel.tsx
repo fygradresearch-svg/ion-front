@@ -142,8 +142,7 @@ export interface PredictionByDistrito {
  */
 export function buildPredictionByDistrito(
     wastePoints: WastePoint[],
-    alerts: Alerta[],
-    topN = 8
+    alerts: Alerta[]
 ): PredictionByDistrito[] {
     const visible = getVisibleWastePoints(wastePoints);
     const map = new Map<string, PredictionByDistrito>();
@@ -158,9 +157,9 @@ export function buildPredictionByDistrito(
         entry.total = (entry.total as number) + 1;
     });
 
-    return Array.from(map.values())
-        .sort((a, b) => (b.total as number) - (a.total as number))
-        .slice(0, topN);
+    // No se limita el resultado: el dashboard y el PDF deben mostrar todos
+    // los distritos que tengan puntos clasificados por IA.
+    return Array.from(map.values()).sort((a, b) => (b.total as number) - (a.total as number));
 }
 
 export interface DistritoResumen {
@@ -262,7 +261,7 @@ export function exportDashboardToExcel(alerts: Alerta[], wastePoints: WastePoint
                 Longitud: p.lng,
                 'Distrito (aprox.)': findNearestDistrito(p, alerts),
                 Categoría: getPredictionMeta(p.prediction).label,
-                'Predicción (raw)': p.prediction,
+                Predicción: getPredictionMeta(p.prediction).label,
                 'Confianza (%)': Math.round(p.confidence * 100),
                 Imagen: p.image_url,
             }))

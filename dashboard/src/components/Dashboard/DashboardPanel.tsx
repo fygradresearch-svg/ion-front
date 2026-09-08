@@ -3,15 +3,13 @@
 import { useMemo, useState } from 'react';
 import {
     PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-    Tooltip, ResponsiveContainer, Legend,
+    Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { X, FileSpreadsheet, LayoutDashboard, Recycle, MapPin, CheckCircle, FileText } from 'lucide-react';
+import { X, FileSpreadsheet, LayoutDashboard, Recycle, FileText } from 'lucide-react';
 import { Alerta, WastePoint } from '@/types';
 import {
-    buildDistritoResumen,
     buildPredictionSummary,
     buildPredictionByDistrito,
-    getVisibleWastePoints,
     PREDICTION_META,
     exportDashboardToExcel,
 } from './DashboardExcel';
@@ -31,8 +29,6 @@ interface DashboardPanelProps {
     selectedProv?: string | null;
 }
 
-const TOP_DISTRITOS = 8;
-
 export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, stats, selectedDept, selectedProv }: DashboardPanelProps) {
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
@@ -44,20 +40,9 @@ export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, s
             setIsGeneratingPdf(false);
         }
     };
-    const resumen = useMemo(() => buildDistritoResumen(alerts), [alerts]);
-    const topDistritos = useMemo(
-        () => resumen.slice(0, TOP_DISTRITOS).map((r) => ({
-            name: r.distrito,
-            Atendidos: r.atendidos,
-            Pendientes: r.pendientes,
-        })),
-        [resumen]
-    );
-
-    const visibleWastePoints = useMemo(() => getVisibleWastePoints(wastePoints), [wastePoints]);
     const predictionSummary = useMemo(() => buildPredictionSummary(wastePoints), [wastePoints]);
     const predictionByDistrito = useMemo(
-        () => buildPredictionByDistrito(wastePoints, alerts, 6),
+        () => buildPredictionByDistrito(wastePoints, alerts),
         [wastePoints, alerts]
     );
     const predictionKeysPresent = useMemo(
@@ -66,6 +51,8 @@ export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, s
     );
 
     const totalPredictions = predictionSummary.reduce((sum, p) => sum + p.count, 0);
+    // Da espacio a una fila por distrito, para que ninguno quede oculto.
+    const districtChartHeight = Math.max(256, predictionByDistrito.length * 38 + 72);
 
     return (
         <aside
@@ -177,21 +164,31 @@ export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, s
                             <Recycle className="w-3.5 h-3.5" />
                             Categorías IA por distrito
                         </h3>
-                        <div className="bg-white border border-slate-100 rounded-xl p-2 sm:p-3 h-64">
+                        <div
+                            className="bg-white border border-slate-100 rounded-xl p-2 sm:p-3"
+                            style={{ height: districtChartHeight }}
+                        >
                             {predictionByDistrito.length === 0 ? (
                                 <EmptyState text="No hay puntos IA con distrito asignado todavía." />
                             ) : (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={predictionByDistrito} margin={{ top: 8, right: 8, left: -20, bottom: 40 }}>
+                                    <BarChart
+                                        data={predictionByDistrito}
+                                        layout="vertical"
+                                        margin={{ top: 8, right: 16, left: 24, bottom: 8 }}
+                                    >
                                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                        <XAxis
-                                            dataKey="distrito"
+                                        <XAxis type="number"
+                                            allowDecimals={false}
                                             tick={{ fontSize: 13, fill: '#64748b' }}
-                                            angle={-40}
-                                            textAnchor="end"
+                                        />
+                                        <YAxis
+                                            dataKey="distrito"
+                                            type="category"
+                                            width={105}
+                                            tick={{ fontSize: 13, fill: '#64748b' }}
                                             interval={0}
                                         />
-                                        <YAxis tick={{ fontSize: 13, fill: '#64748b' }} allowDecimals={false} />
                                         <Tooltip contentStyle={{ fontSize: 13, borderRadius: 8, border: '1px solid #e2e8f0' }} />
                                         {predictionKeysPresent.map((key, idx) => (
                                             <Bar

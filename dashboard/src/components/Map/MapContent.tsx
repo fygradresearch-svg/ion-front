@@ -291,8 +291,10 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
           <MapClickHandler onMapDoubleClick={handleMapDoubleClick} enabled={!clickCoords} />
 
           <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; OpenStreetMap'
+              // OpenStreetMap no necesita una API key. Se evita así que el mapa
+              // falle si un proveedor externo exige credenciales.
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
 
           {userPosition && (
