@@ -1,7 +1,8 @@
 'use client';
 
-import { WastePoint } from '@/types';
-import {getCategoryFromYolo, MUNICIPAL_CATEGORIES, MunicipalCategory} from "@/lib/municipalWaste";
+import { Alerta, WastePoint } from '@/types';
+import {getCategoryFromYolo, MunicipalCategory} from "@/lib/municipalWaste";
+import ImageCarousel from './ImageCarousel';
 // Asegúrate de que tu municipal.ts tenga esta estructura
 export interface MunicipalCategoryInfo {
     key: MunicipalCategory;
@@ -14,7 +15,7 @@ export interface MunicipalCategoryInfo {
     tachoColor: string; // ← Este campo debe existir
     wasteTypes: string[]; // ← Este campo debe existir
 }
-export default function WastePointPopup({ point }: { point: WastePoint }) {
+export default function WastePointPopup({ point, oefaAlert }: { point: WastePoint; oefaAlert?: Alerta | null }) {
     // Obtener la información de la categoría municipal
     const categoryInfo = getCategoryFromYolo(point.prediction);
     const confidencePercent = point.confidence <= 1
@@ -38,21 +39,18 @@ export default function WastePointPopup({ point }: { point: WastePoint }) {
                 </span>
             </div>
 
-            {point.image_url && (
-                <div style={{
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    marginBottom: '8px',
-                    backgroundColor: '#0f172a'
-                }}>
-                    <img
-                        src={point.image_url}
-                        alt="Evidencia"
-                        style={{ width: '100%', height: '140px', objectFit: 'cover' }}
-                        onError={(e) => {
-                            e.currentTarget.src = 'https://placehold.co/400x300?text=Sin+imagen';
-                        }}
-                    />
+            {oefaAlert ? (
+                <div style={{ marginBottom: '8px' }}>
+                    <p style={{ fontSize: '9px', color: '#64748b', margin: '0 0 4px', fontWeight: 'bold' }}>
+                        Evidencia fotográfica OEFA #{oefaAlert.OBJECTID}
+                    </p>
+                    <ImageCarousel objectId={oefaAlert.OBJECTID} />
+                </div>
+            ) : (
+                <div style={{ padding: '12px', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #e2e8f0', marginBottom: '8px' }}>
+                    <p style={{ fontSize: '10px', color: '#94a3b8', margin: 0 }}>
+                        Sin imagen OEFA asociada
+                    </p>
                 </div>
             )}
 

@@ -245,11 +245,6 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
     return nearestAlert;
   };
 
-  const getWastePointStatusColor = (point: WastePoint) => {
-    const nearestAlert = getNearestAlertForWastePoint(point);
-    return getStatusColor(nearestAlert?.ESTADO_DESC || 'No atendido');
-  };
-
   const createPointStyle = (fillColor: string, fillOpacity = 1) => ({
     stroke: false,
     fillColor,
@@ -315,18 +310,22 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
           {/*    />*/}
           {/*)}*/}
 
-          {wastePoints.map((point) => (
+          {wastePoints.map((point) => {
+            const nearestAlert = getNearestAlertForWastePoint(point);
+
+            return (
               <CircleMarker
                   key={`waste-${point.id}`}
                   center={[point.lat, point.lng]}
-                  pathOptions={createPointStyle(getWastePointStatusColor(point), 0.9)}
+                  pathOptions={createPointStyle(getStatusColor(nearestAlert?.ESTADO_DESC || 'No atendido'), 0.9)}
                   radius={7}
               >
                   <Popup minWidth={250}>
-                    <WastePointPopup point={point} />
+                    <WastePointPopup point={point} oefaAlert={nearestAlert} />
                   </Popup>
               </CircleMarker>
-          ))}
+            );
+          })}
 
           {peruGeoJSON && (
               <GeoJSON
