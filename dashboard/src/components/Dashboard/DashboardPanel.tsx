@@ -98,7 +98,7 @@ export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, s
                             color="text-emerald-600"
                         />
                         <StatCard
-                            label="Pendientes"
+                            label="No Atendidas"
                             value={stats.noAtendidos}
                             percent={stats.total ? Math.round((stats.noAtendidos / stats.total) * 100) : 0}
                             color="text-amber-600"
@@ -109,7 +109,7 @@ export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, s
                     <section id="pdf-chart-classification" className="bg-white p-2 rounded-xl">
                         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                             <Recycle className="w-3.5 h-3.5" />
-                            Clasificación municipal de residuos
+                            Clasificación visual por IA
                         </h3>
                         {predictionSummary.length === 0 ? (
                             <EmptyState text="Todavía no hay puntos IA con detección válida." />

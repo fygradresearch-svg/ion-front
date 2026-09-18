@@ -227,7 +227,7 @@ export async function exportDashboardToPdf(
         // Chart 1: Clasificación de Residuos
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(13);
-        doc.text('1. Clasificación Municipal de Residuos (IA)', 14, 92);
+        doc.text('1. Clasificación visual por (IA)', 14, 92);
 
         const classEl = document.getElementById('pdf-chart-classification');
         if (classEl) {
