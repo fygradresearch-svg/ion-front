@@ -97,6 +97,7 @@ export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, s
                             percent={stats.total ? Math.round((stats.atendidos / stats.total) * 100) : 0}
                             color="text-emerald-600"
                         />
+
                         <StatCard
                             label="No Atendidas"
                             value={stats.noAtendidos}
