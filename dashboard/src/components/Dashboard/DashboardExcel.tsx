@@ -264,7 +264,7 @@ export function exportDashboardToExcel(alerts: Alerta[], wastePoints: WastePoint
                 Categoría: getPredictionMeta(p.prediction).label,
                 Predicción: getPredictionMeta(p.prediction).label,
                 'Confianza (%)': Math.round(p.confidence ),
-                Imagen: p.image_url,
+                // Imagen: p.image_url,
             }))
         );
         XLSX.utils.book_append_sheet(wb, iaSheet, 'Puntos IA');
