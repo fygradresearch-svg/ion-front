@@ -219,7 +219,7 @@ export default function Sidebar({
                             </div>
                             <div className="bg-red-50 rounded-xl p-2 sm:p-3 text-center border border-red-100">
                                 <p className="text-base sm:text-lg font-black text-red-600">{stats.noAtendidos}</p>
-                                <p className="text-[8px] sm:text-[9px] font-bold text-red-500 uppercase tracking-wider">Pendientes</p>
+                                <p className="text-[8px] sm:text-[9px] font-bold text-red-500 uppercase tracking-wider">No atendidos</p>
                             </div>
                         </div>
                     </section>

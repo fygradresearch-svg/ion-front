@@ -30,7 +30,8 @@ function getEstado(a: any): string {
 }
 
 function isAtendido(a: any): boolean {
-    return String(getEstado(a)).toLowerCase().includes('atendido');
+    const estado = String(getEstado(a)).toLowerCase();
+    return estado.includes('atendido') && !estado.includes('no atendido');
 }
 
 /** Distancia en km entre dos coordenadas (fórmula haversine) */
@@ -168,7 +169,7 @@ export interface DistritoResumen {
     region: string;
     total: number;
     atendidos: number;
-    pendientes: number;
+    noAtendidos: number;
 }
 
 /** Agrupa las alertas por distrito para el resumen y las gráficas */
@@ -182,12 +183,12 @@ export function buildDistritoResumen(alerts: Alerta[]): DistritoResumen[] {
         const key = `${region}|${provincia}|${distrito}`;
 
         if (!map.has(key)) {
-            map.set(key, { distrito, provincia, region, total: 0, atendidos: 0, pendientes: 0 });
+            map.set(key, { distrito, provincia, region, total: 0, atendidos: 0, noAtendidos: 0 });
         }
         const entry = map.get(key)!;
         entry.total += 1;
         if (isAtendido(a)) entry.atendidos += 1;
-        else entry.pendientes += 1;
+        else entry.noAtendidos += 1;
     });
 
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
@@ -215,7 +216,7 @@ export function buildHistogramBuckets(resumen: DistritoResumen[]) {
 export function exportDashboardToExcel(alerts: Alerta[], wastePoints: WastePoint[]) {
     const resumen = buildDistritoResumen(alerts);
     const wb = XLSX.utils.book_new();
-
+    console.log(resumen)
     // --- Hoja: Resumen por distrito ---
     const resumenSheet = XLSX.utils.json_to_sheet(
         resumen.map((r) => ({
@@ -224,7 +225,7 @@ export function exportDashboardToExcel(alerts: Alerta[], wastePoints: WastePoint
             Distrito: r.distrito,
             'Total puntos': r.total,
             Atendidos: r.atendidos,
-            Pendientes: r.pendientes,
+            'No atendidos': r.noAtendidos,
         }))
     );
     XLSX.utils.book_append_sheet(wb, resumenSheet, 'Resumen por Distrito');

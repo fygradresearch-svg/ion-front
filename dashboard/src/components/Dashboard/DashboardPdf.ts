@@ -208,7 +208,7 @@ export async function exportDashboardToPdf(
         doc.setTextColor(16, 185, 129);
         doc.text('ATENDIDOS', 14 + cardWidth + 4 + cardWidth / 2, cardY + 16, { align: 'center' });
 
-        // KPI Card 3: Pendientes
+        // KPI Card 3: No atendidos
         doc.setFillColor(254, 242, 242); // red-50
         doc.setDrawColor(254, 226, 226); // red-100
         doc.rect(14 + (cardWidth + 4) * 2, cardY, cardWidth, cardHeight, 'FD');
@@ -219,7 +219,7 @@ export async function exportDashboardToPdf(
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8);
         doc.setTextColor(239, 68, 68);
-        doc.text('PENDIENTES', 14 + (cardWidth + 4) * 2 + cardWidth / 2, cardY + 16, { align: 'center' });
+        doc.text('NO ATENDIDOS', 14 + (cardWidth + 4) * 2 + cardWidth / 2, cardY + 16, { align: 'center' });
 
         // Reset Text Color
         doc.setTextColor(30, 41, 59);
@@ -311,7 +311,7 @@ export async function exportDashboardToPdf(
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
         doc.setTextColor(100, 116, 139);
-        doc.text('A continuación se detalla la cantidad de puntos críticos detectados, atendidos y pendientes para cada distrito.', 14, 33);
+        doc.text('A continuación se detalla la cantidad de puntos críticos detectados, atendidos y no atendidos para cada distrito.', 14, 33);
 
         // Table headers
         let currentY = 42;
@@ -323,7 +323,7 @@ export async function exportDashboardToPdf(
         doc.setTextColor(51, 65, 85); // slate-700
         doc.text('Distrito', 18, currentY + 5.5);
         doc.text('Atendidos', pageWidth - 85, currentY + 5.5, { align: 'right' });
-        doc.text('Pendientes', pageWidth - 50, currentY + 5.5, { align: 'right' });
+        doc.text('No atendidos', pageWidth - 50, currentY + 5.5, { align: 'right' });
         doc.text('Total', pageWidth - 18, currentY + 5.5, { align: 'right' });
 
         currentY += 8;
@@ -363,7 +363,7 @@ export async function exportDashboardToPdf(
                 doc.setTextColor(51, 65, 85);
                 doc.text('Distrito', 18, currentY + 5.5);
                 doc.text('Atendidos', pageWidth - 85, currentY + 5.5, { align: 'right' });
-                doc.text('Pendientes', pageWidth - 50, currentY + 5.5, { align: 'right' });
+                doc.text('No atendidos', pageWidth - 50, currentY + 5.5, { align: 'right' });
                 doc.text('Total', pageWidth - 18, currentY + 5.5, { align: 'right' });
 
                 currentY += 8;

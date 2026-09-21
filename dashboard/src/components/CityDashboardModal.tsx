@@ -381,7 +381,7 @@ export default function CityDashboardModal({
                             <Clock className="w-5 h-5 text-yellow-600" />
                         </div>
                         <div>
-                            <h4 className="text-sm font-bold text-yellow-700">Pendientes de Atención</h4>
+                            <h4 className="text-sm font-bold text-yellow-700">No atendidos</h4>
                             <p className="text-xs text-yellow-600 mt-1">{dashboardData.overview.pending} reportes sin respuesta</p>
                             <p className="text-2xl font-bold text-yellow-700 mt-2">{dashboardData.overview.pending}</p>
                         </div>

@@ -237,7 +237,7 @@ export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, s
                     {/*                        <Pie*/}
                     {/*                            data={[*/}
                     {/*                                { name: 'Atendidos', value: stats.atendidos, color: '#10b981' },*/}
-                    {/*                                { name: 'Pendientes', value: stats.noAtendidos, color: '#f59e0b' }*/}
+                    {/*                                { name: 'No atendidos', value: stats.noAtendidos, color: '#f59e0b' }*/}
                     {/*                            ]}*/}
                     {/*                            dataKey="value"*/}
                     {/*                            nameKey="name"*/}
@@ -267,7 +267,7 @@ export default function DashboardPanel({ isOpen, onClose, alerts, wastePoints, s
                     {/*                <li className="flex items-center justify-between text-xs">*/}
                     {/*                    <span className="flex items-center gap-2 font-medium text-slate-600">*/}
                     {/*                        <span className="w-2.5 h-2.5 rounded-sm inline-block shrink-0 bg-amber-500" />*/}
-                    {/*                        Pendientes*/}
+                    {/*                        No atendidos*/}
                     {/*                    </span>*/}
                     {/*                    <span className="font-bold text-slate-800 tabular-nums">*/}
                     {/*                        {stats.noAtendidos} ({stats.total ? Math.round((stats.noAtendidos / stats.total) * 100) : 0}%)*/}

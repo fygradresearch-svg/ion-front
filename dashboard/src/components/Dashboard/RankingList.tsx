@@ -53,7 +53,7 @@ export default function RankingList({ items, onSelect }: RankingListProps) {
                                 <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100" title="Atendidos">
                                     A:{item.atendidos}
                                 </span>
-                                <span className="text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100" title="Pendientes">
+                                <span className="text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100" title="No atendidos">
                                     P:{item.noAtendidos}
                                 </span>
                             </div>
@@ -67,7 +67,7 @@ export default function RankingList({ items, onSelect }: RankingListProps) {
                             </span>
                         </div>
 
-                        {/* Dual colored bar (Emerald for Atendidos, Red for Pendientes) */}
+                        {/* Dual colored bar (Emerald for Atendidos, Red for No atendidos) */}
                         <div className="mt-2.5 h-2 w-full bg-slate-100 rounded-full overflow-hidden flex">
                             {item.total > 0 ? (
                                 <>
