@@ -263,7 +263,7 @@ export function exportDashboardToExcel(alerts: Alerta[], wastePoints: WastePoint
                 'Distrito (aprox.)': findNearestDistrito(p, alerts),
                 Categoría: getPredictionMeta(p.prediction).label,
                 Predicción: getPredictionMeta(p.prediction).label,
-                'Confianza (%)': Math.round(p.confidence * 100),
+                'Confianza (%)': Math.round(p.confidence ),
                 Imagen: p.image_url,
             }))
         );
