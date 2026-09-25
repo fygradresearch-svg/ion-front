@@ -1,8 +1,9 @@
 'use client';
 
-import { MapContainer, TileLayer, Popup, CircleMarker, GeoJSON, useMap, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Popup, CircleMarker, GeoJSON, Marker, useMap, ZoomControl } from 'react-leaflet';
+import { divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Alerta, WastePoint } from '@/types';
 import HeatmapLayer from './HeatmapLayer';
 import { getContaminationDataFromSentinel2, convertToHeatmapFormat, ContaminationPoint } from '@/services/sentinelService';
@@ -41,6 +42,13 @@ const juninMarketsHeatmapData: [number, number, number][] = [
   // Feria Dominical: Concentración de residuos post-feria
   [-12.0765, -75.2091, 1.7], [-12.0766, -75.2090, 1.6],
 ];
+
+const hazardousFlagIcon = divIcon({
+  className: 'hazardous-flag-marker',
+  html: '<span aria-label="Residuo peligroso" title="Residuo peligroso" style="font-size:18px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))">🚩</span>',
+  iconSize: [18, 18],
+  iconAnchor: [-3, 18],
+});
 
 
 function MapController({ center, zoom }: { center: [number, number] | null, zoom: number }) {
@@ -283,7 +291,7 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
               zoom={targetCoords ? 14 : (userPosition ? 16 : 13)}
           />
 
-          <MapClickHandler onMapDoubleClick={handleMapDoubleClick} enabled={!clickCoords} />
+          {/*<MapClickHandler onMapDoubleClick={handleMapDoubleClick} enabled={!clickCoords} />*/}
 
           <TileLayer
               // OpenStreetMap no necesita una API key. Se evita así que el mapa
@@ -312,18 +320,27 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
 
           {wastePoints.map((point) => {
             const nearestAlert = getNearestAlertForWastePoint(point);
+            const isHazardous = point.prediction?.toLowerCase() === 'hazardous';
 
             return (
-              <CircleMarker
-                  key={`waste-${point.id}`}
-                  center={[point.lat, point.lng]}
-                  pathOptions={createPointStyle(getStatusColor(nearestAlert?.ESTADO_DESC || 'No atendido'), 0.9)}
-                  radius={7}
-              >
-                  <Popup minWidth={250}>
-                    <WastePointPopup point={point} oefaAlert={nearestAlert} />
-                  </Popup>
-              </CircleMarker>
+              <Fragment key={`waste-${point.id}`}>
+                <CircleMarker
+                    center={[point.lat, point.lng]}
+                    pathOptions={createPointStyle(getStatusColor(nearestAlert?.ESTADO_DESC || 'No atendido'), 0.9)}
+                    radius={7}
+                >
+                    <Popup minWidth={250}>
+                      <WastePointPopup point={point} oefaAlert={nearestAlert} />
+                    </Popup>
+                </CircleMarker>
+                {isHazardous && (
+                  <Marker
+                      position={[point.lat, point.lng]}
+                      icon={hazardousFlagIcon}
+                      interactive={false}
+                  />
+                )}
+              </Fragment>
             );
           })}
 
@@ -439,15 +456,15 @@ export default function MapContent({ data, selectedDept, selectedProv, targetCoo
         {/*      totalPoints={getTotalPoints()}*/}
         {/*  />*/}
         {/*</div>*/}
-        {!clickCoords && (
-            <div className="absolute bottom-4 sm:bottom-6 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-[1000] pointer-events-none">
-                <div className="bg-white/90 backdrop-blur-md border border-violet-200 px-3 sm:px-4 py-2 rounded-full shadow-lg text-center">
-                    <p className="text-[10px] sm:text-xs text-violet-700 font-medium">
-                        📍 Doble clic / doble toque en el mapa para registrar un punto
-                    </p>
-                </div>
-            </div>
-        )}
+        {/*{!clickCoords && (*/}
+        {/*    <div className="absolute bottom-4 sm:bottom-6 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-[1000] pointer-events-none">*/}
+        {/*        <div className="bg-white/90 backdrop-blur-md border border-violet-200 px-3 sm:px-4 py-2 rounded-full shadow-lg text-center">*/}
+        {/*            <p className="text-[10px] sm:text-xs text-violet-700 font-medium">*/}
+        {/*                📍 Doble clic / doble toque en el mapa para registrar un punto*/}
+        {/*            </p>*/}
+        {/*        </div>*/}
+        {/*    </div>*/}
+        {/*)}*/}
       </div>
   );
 }

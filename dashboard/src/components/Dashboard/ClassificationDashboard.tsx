@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import Image from 'next/image';
-import { X, MapPin, Loader2, BarChart3, AlertTriangle } from 'lucide-react';
+import { X, MapPin, Loader2, BarChart3, AlertTriangle, Flag } from 'lucide-react';
 import { Alerta } from '@/types';
 import {
     MUNICIPAL_CATEGORIES,
@@ -222,6 +222,7 @@ export default function ClassificationDashboard({
                                     <div className="space-y-2 max-h-48 overflow-y-auto">
                                         {analyzedPoints.map((point, idx) => {
                                             const cat = getMunicipalCategoryInfo(toMunicipalCategory(point.prediction));
+                                            const isHazardous = cat.key === 'peligrosos';
                                             const conf = formatConfidence(point.confidence);
                                             return (
                                                 <div
@@ -251,6 +252,14 @@ export default function ClassificationDashboard({
                                                             <p className="text-xs font-bold truncate" style={{ color: cat.color }}>
                                                                 {cat.shortLabel}
                                                             </p>
+                                                            {isHazardous && (
+                                                                <Flag
+                                                                    className="w-3.5 h-3.5 shrink-0 fill-red-600 text-red-600"
+                                                                    aria-label="Residuo peligroso"
+                                                                >
+                                                                    <title>Residuo peligroso</title>
+                                                                </Flag>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <span className="text-[10px] font-bold text-slate-400 shrink-0">
